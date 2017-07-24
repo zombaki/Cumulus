@@ -26,6 +26,12 @@ project:
         - github: https://github.com/SalesforceFoundation/Affiliations
 
 tasks:
+    run_tests_debug:
+        class_path: tasks.test_runner.RunApexTests
+    
+    run_tests:
+        class_path: tasks.test_runner.RunApexTests
+
     download_browser_tests:
         description: Downloads the browser tests from the NPSP-Browser-Tests Github repository.
         class_path: cumulusci.tasks.util.DownloadZip

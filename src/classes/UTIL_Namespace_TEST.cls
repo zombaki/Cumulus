@@ -77,6 +77,8 @@ public with sharing class UTIL_Namespace_TEST {
         str = Label.Addr_Settings_Test_Response_Title;
         str = Label.Addr_Settings_Test_Title;
         str = Label.Addr_Verification_Batch_Status;
+        str = System.Label.DeleteAccount;
+        str = System.Label.DeleteContactLeaveAccount;
         str = Label.stgHHNameRefreshTitle;
         str = Label.stgLabelAfflSettings;
         str = Label.stgLabelBDESettings;
@@ -109,9 +111,17 @@ public with sharing class UTIL_Namespace_TEST {
         str = Label.alloTotals;
         str = Label.alloCampaignExceedsOppAmount;
         str = Label.alloUnallocated;
+        str = Label.alloBtnCancel;
+        str = Label.alloBtnSaveAndClose;
         str = Label.stgHelpBatchCreateDefault;
         str = Label.addrHHAddressAlwaysDefault;
         str = Label.Addr_Verification_Cant_Load_Class;
+        str = Label.pmtWizardWarning;
+        str = Label.hhCmpDedupLabelReturnToCmp;
+        str = Label.sendAcknowledgmentReturnLinkLabel;
+        str = System.Label.stgHelpRespectDuplicateRuleSettings;
+        str = Label.bdiFailed;
+        str = Label.bdiImported;
 
         // The following labels are referenced because the spider was having
         // issues resolving references to them and they need to be directly

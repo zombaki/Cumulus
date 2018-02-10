@@ -38,13 +38,18 @@
 @isTest
 public with sharing class BDI_DataImport_TEST {
 
-    /**
+    /*******************************************************************************************************
     * @description if you only want to run one test in this class, fill in its name here.
     * if you want to run all tests, then use '*'
     */
     private static string strTestOnly = '*';
     
-    // utility to create a new di record    
+    /*******************************************************************************************************
+    * @description creates a new di record for tests
+    * @param firstname the firstname to specify for Contact1
+    * @param lastname the lastname to specify for Contact1
+    * @return DataImport__c the new Data Import record
+    */
     public static DataImport__c newDI(string firstname, string lastname) {
         return new DataImport__c(
            Contact1_Firstname__c = firstname,
@@ -53,15 +58,22 @@ public with sharing class BDI_DataImport_TEST {
         );
     }
 
-    // utility to create a new di record    
+    /*******************************************************************************************************
+    * @description creates a new di record for tests
+    * @param firstname the firstname to specify for Contact1
+    * @param lastname the lastname to specify for Contact1
+    * @param firstname2 the firstname to specify for Contact2
+    * @param lastname2 the lastname to specify for Contact2
+    * @return DataImport__c the new Data Import record
+    */
     public static DataImport__c newDI(string firstname, string lastname, string firstname2, string lastname2) {
         return new DataImport__c(
            Contact1_Firstname__c = firstname,
            Contact1_Lastname__c = lastname,
-           Contact1_Personal_Email__c = firstname + '@' + lastname + '.com',
+           Contact1_Personal_Email__c = (lastname == null ? null : firstname + '@' + lastname + '.com'),
            Contact2_Firstname__c = firstname2,
            Contact2_Lastname__c = lastname2,
-           Contact2_Personal_Email__c = firstname2 + '@' + lastname2 + '.com'
+           Contact2_Personal_Email__c = (lastname2 == null ? null : firstname2 + '@' + lastname2 + '.com')
         );
     }
 
@@ -329,8 +341,8 @@ public with sharing class BDI_DataImport_TEST {
         listDI = [select Contact1Imported__c, Contact1ImportStatus__c, HouseholdAccountImported__c, 
             Contact2Imported__c, Contact2ImportStatus__c from DataImport__c];
         system.assertEquals(1, listDI.size());
-        system.assertEquals(listDI[0].Contact1Imported__c, listCon[0].Id);
-        system.assertEquals(listDI[0].Contact2Imported__c, null);
+        system.assertEquals(null, listDI[0].Contact1Imported__c);
+        system.assertEquals(null, listDI[0].Contact2Imported__c);
         system.assertEquals(null, listDI[0].HouseholdAccountImported__c);
         system.assertEquals(label.bdiErrorNonHHAccountContact, listDI[0].Contact1ImportStatus__c);
         system.assertEquals(null, listDI[0].Contact2ImportStatus__c);     
@@ -443,12 +455,12 @@ public with sharing class BDI_DataImport_TEST {
         if (strTestOnly != '*' && strTestOnly != 'TwoDIExistingAccounts') return;
             
         list<Account> listAcc = new list<Account>();
-        listAcc.add(new Account(name='A1'));
+        listAcc.add(new Account(name='A1', BillingCity='Seattle'));
         listAcc.add(new Account(name='A2'));
         insert listAcc;    
                     
         list<DataImport__c> listDI = new list<DataImport__c>();
-        listDI.add(new DataImport__c(Account1_Name__c='A1'));
+        listDI.add(new DataImport__c(Account1_Name__c='A1', Account1_City__c='Seattle'));
         listDI.add(new DataImport__c(Account1_Name__c='A2'));
         insert listDI;
           
@@ -658,7 +670,69 @@ public with sharing class BDI_DataImport_TEST {
         system.assertEquals(label.bdiCreated, listDI[0].HomeAddressImportStatus__c);
         system.assertEquals(label.bdiCreated, listDI[1].HomeAddressImportStatus__c);        
     }
-    
+
+    /*********************************************************************************************************
+    * @description operation
+    *        import existing contacts with home addresses
+    * verify:
+    *        address objects not duplicated
+    *        contacts' mailing address set
+    *        hh accounts' billing address set
+    **********************************************************************************************************/
+    static testMethod void TwoDIExistingHomeAddresses() {
+        if (strTestOnly != '*' && strTestOnly != 'TwoDIExistingHomeAddresses') return;
+
+        // existing contacts
+        list<Contact> listConExisting = new list<Contact>();
+        listConExisting.add(new Contact(Firstname='c1', Lastname='C1', Email='c1@C1.com', MailingCity='Seattle'));
+        listConExisting.add(new Contact(Firstname='c3', Lastname='C3', Email='c3@C3.com', MailingCity='Seattle'));
+        insert listConExisting;
+
+        list<DataImport__c> listDI = new list<DataImport__c>();
+        listDI.add(newDI('c1', 'C1', 'c2', 'C2'));
+        listDI.add(newDI('c3', 'C3', 'c4', 'C4'));
+        listDI[0].Home_City__c = 'Portland';
+        listDI[1].Home_City__c = 'Portland';
+        insert listDI;
+
+        //run batch data import
+        Test.StartTest();
+        BDI_DataImport_BATCH bdi = new BDI_DataImport_BATCH();
+        ID ApexJobId = Database.executeBatch(bdi, 10);
+        Test.stopTest();
+
+        // verify expected results
+        list<Contact> listCon = [select Id, Name, AccountId, MailingCity from Contact order by Lastname];
+        system.assertEquals(4, listCon.size());
+        system.assertEquals('c1 C1', listCon[0].Name);
+        system.assertEquals('c2 C2', listCon[1].Name);
+        system.assertEquals('c3 C3', listCon[2].Name);
+        system.assertEquals('c4 C4', listCon[3].Name);
+        system.assertNotEquals(null, listCon[0].AccountId);
+        system.assertNotEquals(null, listCon[1].AccountId);
+        system.assertNotEquals(null, listCon[2].AccountId);
+        system.assertNotEquals(null, listCon[3].AccountId);
+        system.assertEquals('Portland', listCon[0].MailingCity);
+        system.assertEquals('Portland', listCon[1].MailingCity);
+        system.assertEquals('Portland', listCon[2].MailingCity);
+        system.assertEquals('Portland', listCon[3].MailingCity);
+
+        list<Address__c> listAddr = [select Id, Household_Account__c, MailingCity__c from Address__c order by MailingCity__c];
+        system.assertEquals(4, listAddr.size());
+
+        list<Account> listAcc = [select Id, Name, BillingCity from Account order by Name];
+        system.assertEquals(2, listAcc.size());
+        system.assertEquals('Portland', listAcc[0].BillingCity);
+        system.assertEquals('Portland', listAcc[1].BillingCity);
+
+        listDI = [select HomeAddressImported__c, HomeAddressImportStatus__c, Home_City__c from DataImport__c order by Home_City__c];
+        system.assertEquals(2, listDI.size());
+        system.assertEquals(listDI[0].HomeAddressImported__c, listAddr[0].Id);
+        system.assertEquals(listDI[1].HomeAddressImported__c, listAddr[1].Id);
+        system.assertEquals(label.bdiCreated, listDI[0].HomeAddressImportStatus__c);
+        system.assertEquals(label.bdiCreated, listDI[1].HomeAddressImportStatus__c);
+    }
+
     /*********************************************************************************************************
     * @description operation
     *        import duplicate contacts with duplicate home addresses  
@@ -944,15 +1018,17 @@ public with sharing class BDI_DataImport_TEST {
         system.assertNotEquals(null, listCon[1].AccountId);
         system.assertNotEquals(null, listCon[2].AccountId);
         system.assertNotEquals(null, listCon[3].AccountId);
-        system.assertEquals(100, listCon[0].npo02__TotalOppAmount__c);
+
+        // we no longer run rollups, unless the setting is specified
+        system.assertEquals(0, listCon[0].npo02__TotalOppAmount__c);
         system.assertEquals(0, listCon[1].npo02__TotalOppAmount__c);
-        system.assertEquals(200, listCon[2].npo02__TotalOppAmount__c);
+        system.assertEquals(0, listCon[2].npo02__TotalOppAmount__c);
         system.assertEquals(0, listCon[3].npo02__TotalOppAmount__c);
         
         list<Account> listAcc = [select Id, Name, npo02__TotalOppAmount__c from Account order by Name];
         system.assertEquals(2, listAcc.size());
-        system.assertEquals(100, listAcc[0].npo02__TotalOppAmount__c);
-        system.assertEquals(200, listAcc[1].npo02__TotalOppAmount__c);
+        system.assertEquals(0, listAcc[0].npo02__TotalOppAmount__c);
+        system.assertEquals(0, listAcc[1].npo02__TotalOppAmount__c);
         
         list<Opportunity> listOpp = [select Id, Name, Amount, AccountId from Opportunity order by Name];
         system.assertEquals(2, listOpp.size());
@@ -1019,8 +1095,9 @@ public with sharing class BDI_DataImport_TEST {
         // verify expected results        
         list<Account> listAcc = [select Id, Name, npo02__TotalOppAmount__c from Account order by Name];
         system.assertEquals(2, listAcc.size());
-        system.assertEquals(100, listAcc[0].npo02__TotalOppAmount__c);
-        system.assertEquals(200, listAcc[1].npo02__TotalOppAmount__c);
+        // we no longer run rollups, unless the setting is specified
+        system.assertEquals(0, listAcc[0].npo02__TotalOppAmount__c);
+        system.assertEquals(0, listAcc[1].npo02__TotalOppAmount__c);
         
         list<Opportunity> listOpp = [select Id, Name, Amount, AccountId from Opportunity order by Name];
         system.assertEquals(2, listOpp.size());
@@ -1084,8 +1161,9 @@ public with sharing class BDI_DataImport_TEST {
         
         list<Account> listAcc = [select Id, Name, npo02__TotalOppAmount__c from Account order by Name];
         system.assertEquals(2, listAcc.size());
-        system.assertEquals(100, listAcc[0].npo02__TotalOppAmount__c);
-        system.assertEquals(200, listAcc[1].npo02__TotalOppAmount__c);
+        // we no longer run rollups, unless the setting is specified
+        system.assertEquals(0, listAcc[0].npo02__TotalOppAmount__c);
+        system.assertEquals(0, listAcc[1].npo02__TotalOppAmount__c);
         
         list<Opportunity> listOpp = [select Id, Name, Amount, AccountId, CampaignId from Opportunity order by Name];
         system.assertEquals(2, listOpp.size());
@@ -1181,7 +1259,8 @@ public with sharing class BDI_DataImport_TEST {
         // verify expected results        
         list<Account> listAcc = [select Id, Name, npo02__TotalOppAmount__c from Account order by Name];
         system.assertEquals(2, listAcc.size());
-        system.assertEquals(100, listAcc[0].npo02__TotalOppAmount__c);
+        // we no longer run rollups, unless the setting is specified
+        system.assertEquals(0, listAcc[0].npo02__TotalOppAmount__c);
         system.assertEquals(0, listAcc[1].npo02__TotalOppAmount__c);
         
         list<Opportunity> listOpp = [select Id, Name, Amount, AccountId from Opportunity order by Name];
@@ -1195,8 +1274,8 @@ public with sharing class BDI_DataImport_TEST {
         system.assertEquals(listDI[1].DonationImported__c, null);
         system.assertEquals(label.bdiCreated, listDI[0].DonationImportStatus__c);
         system.assertEquals(label.bdiErrorInvalidDonor, listDI[1].DonationImportStatus__c);
-        system.assertEquals(label.bdiImported, listDI[0].Status__c);        
-        system.assertEquals(label.bdiFailed, listDI[1].Status__c);        
+        system.assertEquals(BDI_DataImport_API.bdiImported, listDI[0].Status__c);
+        system.assertEquals(BDI_DataImport_API.bdiFailed, listDI[1].Status__c);
     }
 
     /*********************************************************************************************************
@@ -1280,5 +1359,43 @@ public with sharing class BDI_DataImport_TEST {
         
         list<Account> listAcc = [select Id, Name from Account];
         system.assertEquals(2, listAcc.size());
+    }
+
+    /*********************************************************************************************************
+    * @description operation
+    *        import existing contacts, from the same household
+    * verify:
+    *        no problems updating additional fields on C1 and C2
+    *        c2 matched in household
+    **********************************************************************************************************/
+    static testMethod void OneDIExistingContactsExistingHousehold() {
+        if (strTestOnly != '*' && strTestOnly != 'OneDIExistingContactsExistingHousehold') return;
+
+        // existing contacts into the same household
+        list<Contact> listConExisting = new list<Contact>();
+        listConExisting.add(new Contact(Firstname='c1', Lastname='C1', Email='c1@C1.com', Salutation='Mr'));
+        insert listConExisting;
+        ID hhId = [SELECT AccountId FROM Contact].AccountId;
+        listConExisting.add(new Contact(Firstname='c2', Lastname='C1', Email='c2@C2.com', Salutation='Mrs', AccountId=hhId));
+        upsert listConExisting;
+
+        list<DataImport__c> listDI = new list<DataImport__c>();
+        listDI.add(new DataImport__c(Contact1_Firstname__c='c1', Contact1_Lastname__c='C1', Contact1_Personal_Email__c='c1@C1.com', Contact1_Salutation__c='Dr',
+            Contact2_Firstname__c='c2', Contact2_Salutation__c='Prof'));
+        insert listDI;
+
+        //run batch data import
+        Test.StartTest();
+        BDI_DataImport_BATCH bdi = new BDI_DataImport_BATCH();
+        ID ApexJobId = Database.executeBatch(bdi, 10);
+        Test.stopTest();
+
+        // verify expected results
+        list<Contact> listCon = [select Id, Firstname, Lastname, Name, AccountId, Salutation from Contact order by Lastname, Firstname];
+        system.assertEquals(2, listCon.size());
+        system.assertEquals(hhId, listCon[0].AccountId);
+        system.assertEquals(hhId, listCon[1].AccountId);
+        system.assertEquals('Dr', listCon[0].Salutation);
+        system.assertEquals('Prof', listCon[1].Salutation);
     }
 }

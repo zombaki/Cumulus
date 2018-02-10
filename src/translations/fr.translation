@@ -772,6 +772,14 @@ Pour vérifier vos paramètres d’allocations UCG, accédez à Dons | Allocatio
         <name>bdiImported</name>
     </customLabels>
     <customLabels>
+        <label><!-- error when the importData() API is given a invalid Batch ID. --></label>
+        <name>bdiInvalidBatchId</name>
+    </customLabels>
+    <customLabels>
+        <label><!-- error message if the Donation Matching Behavior is invalid --></label>
+        <name>bdiInvalidDonationMatchingBehavior</name>
+    </customLabels>
+    <customLabels>
         <label>Correspondant</label>
         <name>bdiMatched</name>
     </customLabels>
@@ -1764,6 +1772,10 @@ Pour vérifier vos paramètres d’allocations UCG, accédez à Dons | Allocatio
         <name>pmtWizardInterval</name>
     </customLabels>
     <customLabels>
+        <label>Mois</label>
+        <name>pmtWizardMonth</name>
+    </customLabels>
+    <customLabels>
         <label>Aucune opportunité trouvée.</label>
         <name>pmtWizardMsgNoOppFound</name>
     </customLabels>
@@ -1816,12 +1828,20 @@ Pour vérifier vos paramètres d’allocations UCG, accédez à Dons | Allocatio
         <name>pmtWizardWarning</name>
     </customLabels>
     <customLabels>
-        <label>Quelle date voulez-vous utiliser ?</label>
+        <label>Semaine</label>
+        <name>pmtWizardWeek</name>
+    </customLabels>
+    <customLabels>
+        <label>Quelle date voulez-vous utiliser?</label>
         <name>pmtWizardWriteoffDate</name>
     </customLabels>
     <customLabels>
         <label>Vous êtes sur le point de déduire {0} paiements totalisant {1}.</label>
         <name>pmtWizardWriteoffMessage</name>
+    </customLabels>
+    <customLabels>
+        <label>Année</label>
+        <name>pmtWizardYear</name>
     </customLabels>
     <customLabels>
         <label>Supprimer la ligne</label>
@@ -3123,11 +3143,11 @@ Remarque : L’onglet de paramètres NPSP est visible dans l’application NPSP
         <name>NPSP_Settings</name>
     </customTabs>
     <quickActions>
-        <label><!-- LogACall --></label>
+        <label><!-- Log a Call --></label>
         <name>LogACall</name>
     </quickActions>
     <quickActions>
-        <label><!-- NewAccount --></label>
+        <label><!-- New Account --></label>
         <name>NewAccount</name>
     </quickActions>
     <quickActions>
@@ -3135,7 +3155,7 @@ Remarque : L’onglet de paramètres NPSP est visible dans l’application NPSP
         <name>NewContact</name>
     </quickActions>
     <quickActions>
-        <label><!-- NewNote --></label>
+        <label><!-- New Note --></label>
         <name>NewNote</name>
     </quickActions>
     <quickActions>
@@ -3143,7 +3163,7 @@ Remarque : L’onglet de paramètres NPSP est visible dans l’application NPSP
         <name>NewOpportunity</name>
     </quickActions>
     <quickActions>
-        <label><!-- NewTask --></label>
+        <label><!-- New Task --></label>
         <name>NewTask</name>
     </quickActions>
     <quickActions>

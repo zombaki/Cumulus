@@ -39,17 +39,17 @@ public class BDI_Donations {
 
     /*******************************************************************************************************
     * @description constructor for the BDI Donations helper
-    * @param bdi The Batch Data Import object the helper should use
+    * @param bdi The Batch Data Import Service the helper should use
     * @return void
     */ 
-    public BDI_Donations(BDI_DataImport_BATCH bdi) {
+    public BDI_Donations(BDI_DataImportService bdi) {
         this.bdi = bdi;
     }
 
     /*******************************************************************************************************
-    * @description The Batch Data Import object the helper should use
+    * @description The Batch Data Import Service the helper should use
     */ 
-    private BDI_DataImport_BATCH bdi { get; set; }
+    private BDI_DataImportService bdi { get; set; }
     
     /*******************************************************************************************************
     * @description map to track the Opportunity created/matched for each DI record
@@ -90,19 +90,10 @@ public class BDI_Donations {
     private BDI_IMatchDonations iMatchDonations {
         get {
             if (iMatchDonations == null) {
-                string strClass = bdi.diSettings.Donation_Matching_Implementing_Class__c;
-                if (strClass == null || strClass == '') {
-                    strClass = 'BDI_MatchDonations';
-                }
-                Type classType = Type.forName(strClass);
-                if (classType != null) {
-                    Object classInstance = classType.newInstance();
-                    if (classInstance instanceof BDI_IMatchDonations) {
-                        iMatchDonations = (BDI_IMatchDonations)classInstance;
-                    }
-                }
+                iMatchDonations = (BDI_IMatchDonations)BDI_DataImportService.instantiateClassForInterface('BDI_IMatchDonations',
+                    bdi.diSettings.Donation_Matching_Implementing_Class__c);
                 if (iMatchDonations == null) {
-                    throw new BDIException(String.format(Label.bdiErrorInvalidIMatchDonations, new list<String>{strClass}));                    
+                    iMatchDonations = new BDI_MatchDonations();
                 }
             }
             return iMatchDonations;
@@ -116,8 +107,8 @@ public class BDI_Donations {
     public static map<String, String> mapDIFieldToOppField {
         get {
             if (mapDIFieldToOppField == null) {
-                mapDIFieldToOppField = BDI_DataImport_BATCH.mapFieldsForDIObject('Opportunity', 'Opportunity', 
-                    BDI_DataImport_BATCH.listStrDataImportFields);
+                mapDIFieldToOppField = BDI_DataImportService.mapFieldsForDIObject('Opportunity', 'Opportunity', 
+                    BDI_DataImportService.listStrDataImportFields);
             }
             return mapDIFieldToOppField;
         }
@@ -130,11 +121,8 @@ public class BDI_Donations {
     public static map<string, string> mapDIFieldToPmtField { 
         get {
             if (mapDIFieldToPmtField == null) {
-                mapDIFieldToPmtField = BDI_DataImport_BATCH.mapFieldsForDIObject('Payment', 'npe01__OppPayment__c', 
-                    BDI_DataImport_BATCH.listStrDataImportFields);
-                // special case Donation fields we defaultly map to Opp fields, but we will use with Payments too!
-                mapDIFieldToPmtField.put(UTIL_Namespace.StrTokenNSPrefix('Donation_Amount__c').toLowercase(), 'npe01__Payment_Amount__c');
-                mapDIFieldToPmtField.put(UTIL_Namespace.StrTokenNSPrefix('Donation_Date__c').toLowercase(), 'npe01__Payment_Date__c');
+                mapDIFieldToPmtField = BDI_DataImportService.mapFieldsForDIObject('Payment', 'npe01__OppPayment__c', 
+                    BDI_DataImportService.listStrDataImportFields);
             }
             return mapDIFieldToPmtField;
         }
@@ -156,7 +144,9 @@ public class BDI_Donations {
         
         // call the extension to match against existing donations
         if (matchBehavior != BDI_DataImport_API.DoNotMatch) {
+            BDI_PerfLogger.PerfLog pl = BDI_DataImportService.perfLogger.newPerfLog('iMatchDonations.match');
             iMatchDonations.match(bdi, listDIDonations, mapDIIdToOpp, mapDIIdToPmt);
+            pl.stop();
         }
         
         // now go thru the new & existing donations and update them
@@ -191,9 +181,14 @@ public class BDI_Donations {
             if (Test.isRunningTest() && opp.Name != null && opp.Name.startsWith('FailTest'))
                 opp.Name = null;
         }
+
+        if (bdi.isDryRun) {
+            setDryRunDonationStatuses(listDIDonations);
+            return;
+        }
         
         // insert our new Opps
-        list<Database.SaveResult> listSR = database.insert(listOppInsert, false);
+        list<Database.SaveResult> listSR = UTIL_DMLService.insertRecords(listOppInsert, false);
         for (integer i = 0; i < listSR.size(); i++) {
             Database.SaveResult sr = listSR[i];
             if (!sr.isSuccess()) {
@@ -205,7 +200,7 @@ public class BDI_Donations {
         }
         
         // update our matched Opps
-        listSR = database.update(listOppUpdate, false);
+        listSR = UTIL_DMLService.updateRecords(listOppUpdate, false);
         for (integer i = 0; i < listSR.size(); i++) {
             Database.SaveResult sr = listSR[i];
             if (!sr.isSuccess()) {
@@ -213,7 +208,10 @@ public class BDI_Donations {
             }
         }
 
-        // add any payments to our map
+        // mark any paid Payments we matched
+        markPaidPayments(listDIDonations);
+
+        // add any new payments to our map
         trackPayments(listDIDonations);
         
         // when we mark Payments paid, ensure they will close our Opp.
@@ -236,7 +234,7 @@ public class BDI_Donations {
         for (DataImport__c di : bdi.listDI) {
             
             // skip di's that already have an error
-            if (di.Status__c == label.bdiFailed) {
+            if (di.Status__c == BDI_DataImport_API.bdiFailed) {
                continue;
             }
             
@@ -348,94 +346,161 @@ public class BDI_Donations {
     * @return Opportunity A new or existing Opportunity. Null if there was an error.
     */ 
     private Opportunity prepareOppForUpdateInsert(DataImport__c di) {        
-            Opportunity opp = mapDIIdToOpp.get(di.Id);
-            string strOppName;
-            
-            // if there is no opp matched, create one for it
-            boolean isNew = (opp == null);
-            if (isNew) {
-                opp = new Opportunity();
-                mapDIIdToOpp.put(di.Id, opp);
-                if (di.Donation_Donor__c == 'Account1') {
-                    Account acc = bdi.AccountFromDi(di, 1);
-                    opp.accountId = acc.Id;    
-                    strOppName = acc.Name;            
-                } else { // we can assume it's for Contact1
-                    Contact con = bdi.ContactFromDi(di, 1);
-                    opp.npe01__Contact_Id_for_Role__c = con.Id;
-                    opp.Primary_Contact__c = con.Id;
-                    opp.Primary_Contact_Campaign_Member_Status__c = di.Campaign_Member_Status__c;
-                    opp.AccountId = con.AccountId;
-                    strOppName = con.Firstname + ' ' + con.Lastname;
-                }
+        Opportunity opp = mapDIIdToOpp.get(di.Id);
+        string strOppName;
+
+        // if there is no opp matched, create one for it
+        boolean isNew = (opp == null);
+        if (isNew) {
+            opp = new Opportunity();
+            mapDIIdToOpp.put(di.Id, opp);
+            if (di.Donation_Donor__c == 'Account1') {
+                Account acc = bdi.AccountFromDi(di, 1);
+                opp.accountId = acc.Id;
+                strOppName = acc.Name;
+            } else { // we can assume it's for Contact1
+                Contact con = bdi.ContactFromDi(di, 1);
+                opp.npe01__Contact_Id_for_Role__c = con.Id;
+                opp.Primary_Contact__c = con.Id;
+                opp.Primary_Contact_Campaign_Member_Status__c = di.Campaign_Member_Status__c;
+                opp.AccountId = con.AccountId;
+                strOppName = con.Firstname + ' ' + con.Lastname;
             }
-            
-            if (di.Donation_Record_Type_Name__c != null) {
-                Id idRt = UTIL_RecordTypes.GetRecordTypeId(Opportunity.sObjectType, di.Donation_Record_Type_Name__c);
-                if (idRt == null) {
-                    bdi.LogBDIError(di, label.bdiErrorInvalidOppRTName, 'DonationImportStatus__c');
-                    return null;
-                }
-                opp.RecordTypeId = idRt;
-                strOppName += ' ' + di.Donation_Record_Type_Name__c;
-            } else {
-                strOppName += ' ' + label.bdiDonation;
+        }
+
+        if (di.Donation_Record_Type_Name__c != null) {
+            Id idRt = UTIL_RecordTypes.GetRecordTypeId(Opportunity.sObjectType, di.Donation_Record_Type_Name__c);
+            if (idRt == null) {
+                bdi.LogBDIError(di, label.bdiErrorInvalidOppRTName, 'DonationImportStatus__c');
+                return null;
             }
-            
-            if (di.Donation_Campaign_Name__c != null) {
-                Id idCmp = bdi.mapStrNameToCampaignId.get(di.Donation_Campaign_Name__c);
-                if (idCmp == null) {
-                    bdi.LogBDIError(di, label.bdiErrorInvalidCampaignName, 'DonationImportStatus__c');
-                    return null;
-                }
-                opp.CampaignId = idCmp;
-            }
-            
-            if (di.Donation_Date__c == null) {
-                if (isNew) {
-                    di.Donation_Date__c = system.today();
-                } else {
-                    di.Donation_Date__c = opp.CloseDate;
-                }
-            }
-            
-            if (di.Donation_Name__c == null) {
-                if (isNew) {
-                    di.Donation_Name__c = strOppName + ' ' + di.Donation_Date__c.format();
-                } else {
-                    di.Donation_Name__c = opp.Name;
-                }
-            } 
-            
-            if (di.Donation_Stage__c == null && defaultClosedWonStage != '' && di.PaymentImported__c == null) {
-                di.Donation_Stage__c = defaultClosedWonStage;
-            }
-            
-            // now copy over all the data to the Opp
-            for (string strDIField : mapDIFieldToOppField.keySet()) {
-                // skip recordtype which we special cased above
-                if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Record_Type_Name__c').toLowercase()) {
-                    continue;
-                }
-                // only honor Stage if we aren't updating its payment
-                if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Stage__c').toLowercase() && di.PaymentImported__c != null) {
-                    continue;
-                }
-                // only honor Amount if we aren't updating its payment
-                if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Amount__c').toLowercase() && di.PaymentImported__c != null) {
-                    continue;
-                }
-                BDI_DataImport_BATCH.isCopiedDIField(di, strDIField, opp, mapDIFieldToOppField);
-            }
-            
-            // the Opp is ready!
+            opp.RecordTypeId = idRt;
+            strOppName += ' ' + di.Donation_Record_Type_Name__c;
+        } else {
+            strOppName += ' ' + label.bdiDonation;
+        }
+
+        // in Dry Run, we don't save campaigns, nor do we try to validate that all of the
+        // updates to the object would succeed, so we should bail out now. (we didn't just bail
+        // out at the beginning, so we would do the record type validation).
+        if (bdi.isDryRun) {
             return opp;
+        }
+
+        if (di.Donation_Campaign_Name__c != null) {
+            Id idCmp = bdi.mapStrNameToCampaignId.get(di.Donation_Campaign_Name__c);
+            if (idCmp == null) {
+                bdi.LogBDIError(di, label.bdiErrorInvalidCampaignName, 'DonationImportStatus__c');
+                return null;
+            }
+            opp.CampaignId = idCmp;
+        }
+
+        if (di.Donation_Date__c == null) {
+            if (isNew) {
+                di.Donation_Date__c = system.today();
+            } else {
+                di.Donation_Date__c = opp.CloseDate;
+            }
+        }
+
+        if (di.Donation_Name__c == null) {
+            if (isNew) {
+                di.Donation_Name__c = strOppName + ' ' + di.Donation_Date__c.format();
+            } else {
+                di.Donation_Name__c = opp.Name;
+            }
+        }
+
+        if (di.Donation_Stage__c == null && defaultClosedWonStage != '' && di.PaymentImported__c == null) {
+            di.Donation_Stage__c = defaultClosedWonStage;
+        }
+
+        // now copy over all the data to the Opp
+        for (string strDIField : mapDIFieldToOppField.keySet()) {
+            // skip recordtype which we special cased above
+            if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Record_Type_Name__c').toLowercase()) {
+                continue;
+            }
+            // only honor Stage if we aren't updating its payment
+            if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Stage__c').toLowercase() && di.PaymentImported__c != null) {
+                continue;
+            }
+            // only honor Amount if we aren't updating its payment
+            if (strDIField == UTIL_Namespace.StrTokenNSPrefix('Donation_Amount__c').toLowercase() && di.PaymentImported__c != null) {
+                continue;
+            }
+            BDI_DataImportService.isCopiedDIField(di, strDIField, opp, mapDIFieldToOppField);
+        }
+
+        // the Opp is ready!
+        return opp;
+    }
+
+    /*******************************************************************************************************
+    * @description Updates the Donation Status in the provided donations to the Dry Run appropriate Status.
+    * @param listDIDonations The DI Records that have donations to import
+    * @return void
+    */
+    private void setDryRunDonationStatuses(list<DataImport__c> listDIDonations) {
+
+        for (DataImport__c di : listDIDonations) {
+
+            // opps
+            if (di.DonationImportStatus__c == BDI_DataImport_API.bdiFailed) {
+                di.DonationImportStatus__c = bdi.statusDIFailed();
+            } else if (di.DonationImportStatus__c == label.bdiMatched) {
+                di.DonationImportStatus__c = bdi.statusMatchedExisting();
+            } else if (di.DonationImportStatus__c == label.bdiMatchedBest) {
+                di.DonationImportStatus__c = bdi.statusMatchedBest();
+            } else if (di.DonationImportStatus__c == label.bdiMatchedId) {
+                di.DonationImportStatus__c = bdi.statusMatchedById();
+            } else if (di.DonationImportStatus__c == label.bdiMatchedNone) {
+                di.DonationImportStatus__c = bdi.statusMatchedNone();
+            }
+
+            // payments
+            if (di.PaymentImportStatus__c == BDI_DataImport_API.bdiFailed) {
+                di.PaymentImportStatus__c = bdi.statusDIFailed();
+            } else if (di.PaymentImportStatus__c == label.bdiMatched) {
+                di.PaymentImportStatus__c = bdi.statusMatchedExisting();
+            } else if (di.PaymentImportStatus__c == label.bdiMatchedBest) {
+                di.PaymentImportStatus__c = bdi.statusMatchedBest();
+            } else if (di.PaymentImportStatus__c == label.bdiMatchedId) {
+                di.PaymentImportStatus__c = bdi.statusMatchedById();
+            } else if (di.PaymentImportStatus__c == label.bdiMatchedNone) {
+                di.PaymentImportStatus__c = bdi.statusMatchedNone();
+            }
+        }
+    }
+
+    /*******************************************************************************************************
+    * @description marks Payments that we matched as Paid, and with correct date and amount
+    * @param listDIDonations The DI Records that have donations to import
+    * @return void
+    */
+    public void markPaidPayments(list<DataImport__c> listDIDonations) {
+
+        // mark existing Payments paid.
+        list<ID> listOppId = new list<ID>();
+        for (DataImport__c di : listDIDonations) {
+            // skip di's that already have an error
+            if (di.Status__c == BDI_DataImport_API.bdiFailed)
+                continue;
+            if (di.PaymentImported__c != null) {
+                npe01__OppPayment__c pmt = mapDIIdToPmt.get(di.Id);
+                pmt.npe01__Paid__c = true;
+                pmt.npe01__Payment_Amount__c = di.Donation_Amount__c;
+                if (pmt.npe01__Payment_Date__c == null) {
+                    pmt.npe01__Payment_Date__c = di.Donation_Date__c;
+                }
+            }
+        }
     }
 
     /*******************************************************************************************************
     * @description Updates our map of DI records to Payments to include the Payments just auto-created
-    * when we created new Opps, or pmt's for matched Opps that we haven't yet tracked.  Also marks
-    * Payments that we matched as Paid.
+    * when we created new Opps, or pmt's for matched Opps that we haven't yet tracked.
     * @param listDIDonations The DI Records that have donations to import
     * @return void
     */ 
@@ -445,44 +510,65 @@ public class BDI_Donations {
         list<ID> listOppId = new list<ID>();        
         for (DataImport__c di : listDIDonations) {
             // skip di's that already have an error
-            if (di.Status__c == label.bdiFailed)
+            if (di.Status__c == BDI_DataImport_API.bdiFailed)
                continue;
             if (di.DonationImported__c != null && di.PaymentImported__c == null) {
                 listOppId.add(di.DonationImported__c);
-            } else if (di.PaymentImported__c != null) {
-                npe01__OppPayment__c pmt = mapDIIdToPmt.get(di.Id);
-                pmt.npe01__Paid__c = true;
             }
         }
 
-        // query for the new payments for these new Opps
-        map<Id, npe01__OppPayment__c> mapOppIdToPayment = new map<Id, npe01__OppPayment__c>();
-        for (npe01__OppPayment__c pmt : [select Id, npe01__Opportunity__c from npe01__OppPayment__c 
-                where npe01__Opportunity__c in :listOppId]) {
-            mapOppIdToPayment.put(pmt.npe01__Opportunity__c, pmt);
-        }
-        
-        // store the Payments into our shared map and update their DI record
-        for (DataImport__c di : listDIDonations) {
-            // skip di's that already have an error
-            if (di.Status__c == label.bdiFailed)
-               continue;
-            if (di.DonationImported__c != null && di.PaymentImported__c == null) {
-                npe01__OppPayment__c pmt = mapOppIdToPayment.get(di.DonationImported__c);
-                if (pmt != null) {
-                    di.PaymentImported__c = pmt.Id;
-                    di.PaymentImportStatus__c = di.DonationImportStatus__c; // could be new or matched
-                    mapDIIdToPmt.put(di.Id, pmt);
+        // query for the new payments
+        if (listOppId.size() > 0) {
+            map<Id, npe01__OppPayment__c> mapOppIdToPayment = new map<Id, npe01__OppPayment__c>();
+            for (npe01__OppPayment__c pmt : database.query(strSoqlForPayments())) {
+                mapOppIdToPayment.put(pmt.npe01__Opportunity__c, pmt);
+            }
+
+            // store the Payments into our shared map and update their DI record
+            for (DataImport__c di : listDIDonations) {
+                // skip di's that already have an error
+                if (di.Status__c == BDI_DataImport_API.bdiFailed)
+                    continue;
+                if (di.DonationImported__c != null && di.PaymentImported__c == null) {
+                    npe01__OppPayment__c pmt = mapOppIdToPayment.get(di.DonationImported__c);
+                    if (pmt != null) {
+                        di.PaymentImported__c = pmt.Id;
+                        di.PaymentImportStatus__c = di.DonationImportStatus__c; // could be new or matched
+                        mapDIIdToPmt.put(di.Id, pmt);
+                    }
                 }
             }
         }
     }
 
     /*******************************************************************************************************
+    * @description returns the soql to use for querying Payments
+    * @return String the soql string
+    */
+    private String strSoqlForPayments() {
+        // the set of Payment fields for our soql
+        set<String> setPmtFields = new set<String>();
+        setPmtFields.add('Id');
+        setPmtFields.add('npe01__Opportunity__c');
+        setPmtFields.add('npe01__Payment_Amount__c');
+        setPmtFields.add('npe01__Payment_Date__c');
+        setPmtFields.add('npe01__Scheduled_Date__c');
+        setPmtFields.add('npe01__Paid__c');
+
+        // need to include any Pmt fields we may update, so we can compare against them
+        setPmtFields.addAll(mapDIFieldToPmtField.values());
+
+        String strSoql = 'SELECT ' + string.join(new list<String>(setPmtFields), ',');
+        strSoql += ' FROM npe01__OppPayment__c WHERE npe01__Opportunity__c in :listOppId';
+
+        return strSoql;
+    }
+
+    /*******************************************************************************************************
     * @description Updates any fields on payment objects created for the Data Import opportunities.
     * @param listDIDonations The DI Records that have donations to import
     * @return void
-    */ 
+    */
     public void updatePayments(list<DataImport__c> listDIDonations) {
 
         list<npe01__OppPayment__c> listPmtUpdate = new list<npe01__OppPayment__c>();
@@ -491,25 +577,26 @@ public class BDI_Donations {
         // update payments
         for (DataImport__c di : listDIDonations) {
             // skip di's that already have an error
-            if (di.Status__c == label.bdiFailed)
+            if (di.Status__c == BDI_DataImport_API.bdiFailed)
                continue;            
             if (di.PaymentImported__c != null) {
                 npe01__OppPayment__c pmt = mapDIIdToPmt.get(di.Id);
                 if (pmt != null) {
                     integer cPropSet = 0;
                     for (string strDIField : mapDIFieldToPmtField.keySet()) {
-                        if (BDI_DataImport_BATCH.isCopiedDIField(di, strDIField, pmt, mapDIFieldToPmtField)) {
+                        if (BDI_DataImportService.isCopiedDIField(di, strDIField, pmt, mapDIFieldToPmtField)) {
                             cPropSet++;
                         }
-                    }                    
-                    if (cPropSet > 0) {
+                    }
+                    // if it's marked paid, we know we need to update it regardless of any copied fields
+                    if (cPropSet > 0 || pmt.npe01__Paid__c) {
                         listPmtUpdate.add(pmt);
                         listDIUpdate.add(di);
                     }
                 }
             }
         }
-        list<Database.SaveResult> listSR = database.update(listPmtUpdate, false);
+        list<Database.SaveResult> listSR = UTIL_DMLService.updateRecords(listPmtUpdate, false);
         for (integer i = 0; i < listSR.size(); i++) {
             Database.SaveResult sr = listSR[i];
             if (!sr.isSuccess()) {

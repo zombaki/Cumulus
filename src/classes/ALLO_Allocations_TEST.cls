@@ -80,8 +80,6 @@ private with sharing class ALLO_Allocations_TEST {
         insert gau;
 
         //resetting these manually as a test is considered a single context for static variables
-        ALLO_Allocations_TDTM.resetFlags(false);
-        
         list<Allocation__c> alloForInsert = new list<Allocation__c>();
 
         Allocation__c percentAllo = new Allocation__c(Opportunity__c=opp.id, Percent__c = 50, General_Accounting_Unit__c = gau.id);
@@ -90,30 +88,27 @@ private with sharing class ALLO_Allocations_TEST {
         alloForInsert.add(amountAllo);
         insert alloForInsert;
 
-        list<Allocation__c> queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Percent__c];
+        list<Allocation__c> queryAllo = getAllocationsOrderByPercent();
         system.assertEquals(50, queryAllo[1].Percent__c, 'The percentage allocation should be 50%.');
         system.assertEquals(4, queryAllo[1].Amount__c, 'The amount of the percentage allocation should be calculated based on the Opportunity amount.');
         system.assertEquals(4, queryAllo[0].Amount__c, 'The amount of the standard number allocation should be 4.');
         
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = 10;
         Test.startTest();
         update opp;
         Test.stopTest();
         
-        queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent();
         system.assertEquals(5, queryAllo[1].Amount__c, 'The amount of the percentage allocation should increase proportionately with the Opportunity amount.');
         system.assertEquals(4, queryAllo[0].Amount__c, 'The amount of the standard number allocation should be unchanged at 4.');
         
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = 8;
         update opp;
 
-        queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent();
         system.assertEquals(4, queryAllo[1].Amount__c, 'The amount of the percentage allocation should decrease proportionately with the Opportunity amount.');
         system.assertEquals(4, queryAllo[0].Amount__c, 'The amount of the standard number allocation should be unchanged at 4.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = 1;
         
         Exception ex = null;
@@ -151,26 +146,23 @@ private with sharing class ALLO_Allocations_TEST {
         General_Accounting_Unit__c gau = new General_Accounting_Unit__c(Name='foo');
         insert gau;
 
-        list<Allocation__c> queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Percent__c];
+        list<Allocation__c> queryAllo = getAllocationsOrderByPercent();
         system.assertEquals(1,queryAllo.size(), 'An allocation to the default General Accounting Unit should be created.');
         system.assertEquals(8,queryAllo[0].Amount__c, 'The default allocation should be for the total amount of the Opportunity.');
 
         //resetting these manually as a test is considered a single context for static variables
-        ALLO_Allocations_TDTM.resetFlags(false);
         Allocation__c amountAllo = new Allocation__c(Opportunity__c=opp.id, Amount__c = 6, General_Accounting_Unit__c = gau.id);
         Test.startTest();
         insert amountAllo;
         Test.stopTest();
 
-        queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Amount__c];
-        system.debug('LOOK queryAllo' + queryAllo);
-        system.assertEquals(2,queryAllo[0].Amount__c, 'The default allocation should be equal to the remainder of the total Opp amount after removing the new Allocation amount.');
+        queryAllo = getAllocationsOrderByAmount();
+        system.assertEquals(2,queryAllo[0].Amount__c, 'The default allocation should be equal to the remainder of the total Opp amount after removing the new Allocation amount: ' + queryAllo);
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         amountAllo.Amount__c = 8;
         update amountAllo;
 
-        queryAllo = [SELECT Id, Percent__c, Amount__c FROM Allocation__c ORDER BY Amount__c];
+        queryAllo = getAllocationsOrderByAmount();
         system.assertEquals(1,queryAllo.size(), 'The default fund allocation should be deleted.');
     }
 
@@ -203,14 +195,13 @@ private with sharing class ALLO_Allocations_TEST {
         alloForInsert.add(amountAllo);
         insert alloForInsert;
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         Opportunity opp = new Opportunity(Name='success', Amount = 10, AccountID=acc.id, CampaignId=cam.id, CloseDate=system.today(), StageName=UTIL_UnitTestData_TEST.getClosedWonStage());
         Test.startTest();
         insert opp;
         Test.stopTest();
 
         //verify campaign allocation and default allocation created
-        list<Allocation__c> queryAllo = [SELECT Id, General_Accounting_Unit__c, General_Accounting_Unit__r.Name, Amount__c, Percent__c FROM Allocation__c WHERE Opportunity__c=:opp.id ORDER BY Amount__c];
+        list<Allocation__c> queryAllo = getAllocationsOrderByAmount(opp.id);
         system.assertEquals(3,queryAllo.size(), 'An allocation for the Campaign Opportunity should be created.');
         system.assertEquals(defaultgau.id, queryAllo[0].General_Accounting_Unit__c, 'A default allocation should be created.');
         system.assertEquals(1, queryAllo[0].Amount__c, 'The default allocation should cover the remainder of the amount.');
@@ -219,17 +210,74 @@ private with sharing class ALLO_Allocations_TEST {
         system.assertEquals(campaigngau.id, queryAllo[2].General_Accounting_Unit__c, 'An allocation mirroring the Campaign Allocation should be created.');
         system.assertEquals(5, queryAllo[2].Amount__c, 'The allocation amount should mirror the Campaign allocation.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         Opportunity opp2 = new Opportunity(Name='error', Amount = 6, AccountID=acc.id, CampaignId=cam.id, CloseDate=system.today(), StageName=UTIL_UnitTestData_TEST.getClosedWonStage());
         insert opp2;
 
         //verify percent allocation created
-        queryAllo = [SELECT Id, Amount__c FROM Allocation__c WHERE Opportunity__c=:opp2.id ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent(opp2.id);
         system.assertEquals(2, queryAllo.size(), 'Only the percent based allocation should be created in the case where the allocation amount exceeded the Opportunity amount.');
         system.assertEquals(3, queryAllo[0].Amount__c, 'The percent allocation should should equal half the opportunity amount.');
         system.assertEquals(3, queryAllo[1].Amount__c, 'The default allocation should cover the remainder of the amount.');
 
     }
+
+    /*********************************************************************************************************
+    @description 
+        Test Allocation on an Opportunity has the same GAU as the linked Campaign Allocation when
+        NPSP Settings Default Allocations are enabled.
+    verify:
+        - The Campaign Allocation Amount covers Opportunity Amount 
+        (the Campaign Allocation Amount must be <= Opportunity Amount) 
+        - The Amount reminder is covered by the NPSP Default Allocation. 
+    **********************************************************************************************************/ 
+    private static testMethod void testOppAllocationGauMatchesCampaignGau() {
+        if (strTestOnly != '*' && strTestOnly != 'testOppAllocationGauMatchesCampaignGau') return;
+
+        General_Accounting_Unit__c defaultGau = new General_Accounting_Unit__c(Name = 'Default');
+        General_Accounting_Unit__c campaignGau = new General_Accounting_Unit__c(Name = 'Campaign');
+        insert new General_Accounting_Unit__c[] {
+            defaultGau, campaignGau
+        };
+        
+        setupSettings(new Allocations_Settings__c(Default_Allocations_Enabled__c = true, Default__c = defaultGau.id));
+
+        Campaign campaign = new Campaign(Name = 'TestCampaign', IsActive = true);
+        insert campaign;
+
+        Allocation__c campaignAllocation = new Allocation__c(
+            Campaign__c = campaign.id, Amount__c = 100, General_Accounting_Unit__c = campaignGau.id
+        );
+        insert campaignAllocation;
+
+        Account acc = new Account(Name='TestAllocGauMatchesCampaignGau');
+        insert acc;
+
+        Opportunity opp = new Opportunity(
+            Name = 'InitOppWithNullAmount', AccountID = acc.id, 
+            CampaignId = campaign.Id, Amount = null,
+            CloseDate = System.today(), StageName = UTIL_UnitTestData_TEST.getClosedWonStage()
+        );
+        insert opp;
+
+        List<Allocation__c> oppAllocations = getAllocationsOrderByAmount(opp.Id);
+        System.assertEquals(0, oppAllocations.size(), 'No Allocation should be created for an Opportunity without Amount: ' + oppAllocations);
+        
+        Decimal remainder = 25;
+        opp.Amount = campaignAllocation.Amount__c + remainder;
+
+        Test.startTest();
+        update opp;
+        Test.stopTest();
+        
+        oppAllocations = getAllocationsOrderByAmount(opp.Id);
+        System.assertEquals(2, oppAllocations.size(), 'Allocations should be created for the Opportunity that now has an Amount: ' + oppAllocations);
+
+        System.assertEquals(remainder, oppAllocations[0].Amount__c, 'The Allocation Amount should match the remainder: ' + oppAllocations);
+        System.assertEquals(defaultGau.Id, oppAllocations[0].General_Accounting_Unit__c, 'The Allocation Gau should match the Default Gau: ' + oppAllocations);
+
+        System.assertEquals(campaignAllocation.Amount__c, oppAllocations[1].Amount__c, 'The Allocation Amount should match the Campaign Amount: ' + oppAllocations);
+        System.assertEquals(campaignGau.Id, oppAllocations[1].General_Accounting_Unit__c, 'The Allocation Gau should match the Campaign Gau: ' + oppAllocations);
+   }
 
     /*******************************************************************************************************
     * @description Recurring Donation Allocations test:
@@ -275,13 +323,11 @@ private with sharing class ALLO_Allocations_TEST {
         list<Opportunity> queryOpp = [SELECT Id, npe03__Recurring_Donation__c, Amount, CloseDate, StageName FROM Opportunity WHERE npe03__Recurring_Donation__c = :rd.id];
         system.assertEquals(1,queryOpp.size(),'A single opportunity should be created.');
 
-        list<Allocation__c> queryAllo = [SELECT Id, Amount__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :queryOpp[0].id];
+        list<Allocation__c> queryAllo = getAllocationsOrderByPercent(queryOpp[0].id);
         system.assertEquals(1,queryAllo.size(),'A single default allocation should be created.');
         system.assertEquals(defaultgau.id,queryAllo[0].General_Accounting_Unit__c,'The allocation should be assigned to the default General Accounting Unit.');
         system.assertEquals(20,queryAllo[0].Amount__c,'The default allocation should be for the total amount of the Opportunity.');
         
-        ALLO_Allocations_TDTM.resetFlags(false);
-
         list<Allocation__c> alloForInsert = new list<Allocation__c>();
         Allocation__c percentAllo = new Allocation__c(Recurring_Donation__c = rd.id, Percent__c = 50, General_Accounting_Unit__c = gau.id);
         alloForInsert.add(percentAllo);
@@ -289,7 +335,7 @@ private with sharing class ALLO_Allocations_TEST {
         alloForInsert.add(amountAllo);
         insert alloForInsert;
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :queryOpp[0].id ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent(queryOpp[0].id);
         system.assertEquals(2,queryAllo.size(), 'Allocations for the open Recurring Donation Opportunity should be created automatically after they are created for the Recurring Donation.');
         system.assertEquals(gau.id,queryAllo[0].General_Accounting_Unit__c, 'Allocations should be to the non-default GAU.');
         system.assertEquals(gau.id,queryAllo[1].General_Accounting_Unit__c, 'Allocations should be to the non-default GAU.');
@@ -298,43 +344,35 @@ private with sharing class ALLO_Allocations_TEST {
         queryOpp[0].StageName = UTIL_UnitTestData_TEST.getClosedWonStage();
         update queryOpp[0];
 
-        ALLO_Allocations_TDTM.resetFlags(false);
-
         percentAllo.Percent__c = 20;
         update percentAllo;
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :queryOpp[0].id ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent(queryOpp[0].id);
         system.assertEquals(2,queryAllo.size(), 'Allocations for the closed/won opportunity should be unchanged.');
         system.assertEquals(50,queryAllo[1].Percent__c, 'The percentage based allocation should be unchanged.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         Opportunity opp = new Opportunity(Name='foo', npe03__Recurring_Donation__c = rd.id, Amount = 20, AccountID=acc.id, CloseDate=system.today(), StageName=UTIL_UnitTestData_TEST.getOpenStage());
         insert opp;
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id ORDER BY Amount__c];
+        queryAllo = getAllocationsOrderByAmount(opp.id);
         system.assertEquals(3,queryAllo.size(), 'Allocations for the open Recurring Donation Opportunity should be created automatically when the opportunity is created.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         Allocation__c exceedAllo = new Allocation__c(Recurring_Donation__c = rd.id, Amount__c = 10, General_Accounting_Unit__c = gau.id);
         insert exceedAllo;
         
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id ORDER BY Percent__c];
-        system.debug('Look:' + queryAllo);
-        system.assertEquals(2,queryAllo.size(), 'Only percent based Opportunity Allocation should exist.');
-        system.assertEquals(16,queryAllo[0].Amount__c, 'The percentage based allocation amount should be set based on the opportunity amount.');
+        queryAllo = getAllocationsOrderByPercent(opp.id);
+        system.assertEquals(2,queryAllo.size(), 'Only percent based Opportunity Allocation should exist: ' + queryAllo);
+        system.assertEquals(16,queryAllo[0].Amount__c, 'The percentage based allocation amount should be set based on the opportunity amount: ' + queryAllo);
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         delete exceedAllo;
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id ORDER BY Amount__c];
+        queryAllo = getAllocationsOrderByAmount(opp.id);
         system.assertEquals(3,queryAllo.size(), 'Allocations for the open Recurring Donation Opportunity should be created automatically when the opportunity is created.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         delete amountAllo;
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id ORDER BY Percent__c];
+        queryAllo = getAllocationsOrderByPercent(opp.id);
         system.assertEquals(2,queryAllo.size(), 'Opportunity Allocation should be deleted along with the Recurring Donation allocation.');
         system.assertEquals(16,queryAllo[0].Amount__c, 'The percentage based allocation amount should be set based on the opportunity amount.');
-
     }
     
     /*******************************************************************************************************
@@ -363,7 +401,6 @@ private with sharing class ALLO_Allocations_TEST {
         alloForInsert.add(percentAllo);
         insert alloForInsert;
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         list<Opportunity> oppList = new list<Opportunity>();
         for (integer i=0;i<100;i++)
             oppList.add(new Opportunity(Name='opp'+i, Amount = 8, AccountID=acc.id, CampaignId=math.mod(i,2)==0?cam.id:null, CloseDate=system.today(), StageName=UTIL_UnitTestData_TEST.getClosedWonStage()));
@@ -378,7 +415,6 @@ private with sharing class ALLO_Allocations_TEST {
         for (Opportunity opp : oppList)
             opp.Amount = 4;
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         update oppList;
 
         queryAggResult = [SELECT count_distinct(Id), General_Accounting_Unit__r.Name FROM Allocation__c WHERE Opportunity__r.Name LIKE 'opp%' GROUP BY General_Accounting_Unit__r.Name ORDER BY count_distinct(Id)];
@@ -413,7 +449,7 @@ private with sharing class ALLO_Allocations_TEST {
         insert oppForInsert;
         Test.stopTest();
 
-        list<Allocation__c> queryAllo = [SELECT Id, Amount__c, General_Accounting_Unit__c FROM Allocation__c];
+        list<Allocation__c> queryAllo = getAllocationsOrderByAmount();
         system.assertEquals(0,queryAllo.size(), 'No default allocation should be created for an excluded opportunity type or an excluded opportunity record type.');
 
     }
@@ -438,22 +474,20 @@ private with sharing class ALLO_Allocations_TEST {
         insert opp;
         Test.stopTest();
 
-        list<Allocation__c> queryAllo = [SELECT Id, Amount__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id];
-        system.assertEquals(0,queryAllo.size(),'No default allocation should be created for an opporunity with a null amount.');
+        list<Allocation__c> queryAllo = getAllocationsOrderByAmount(opp.id);
+        system.assertEquals(0,queryAllo.size(),'No default allocation should be created for an opportunity with a null amount.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = 8;
         update opp;
 
-        queryAllo = [SELECT Id, Amount__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id];
-        system.assertEquals(1,queryAllo.size(),'A default allocation should be created for the opporunity that now has an amount.');
+        queryAllo = getAllocationsOrderByAmount(opp.id);
+        system.assertEquals(1,queryAllo.size(),'A default allocation should be created for the opportunity that now has an amount.');
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = null;
         update opp;
 
-        queryAllo = [SELECT Id, Amount__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id];
-        system.assertEquals(0,queryAllo.size(),'A default allocation should be created for the opporunity that now has an amount.');
+        queryAllo = getAllocationsOrderByAmount(opp.id);
+        system.assertEquals(0,queryAllo.size(),'A default allocation should be deleted for the opportunity that now has no amount.');
     }
 
     /*******************************************************************************************************
@@ -486,13 +520,12 @@ private with sharing class ALLO_Allocations_TEST {
         listGau[0].Active__c = false;
         update listGau[0];
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         Opportunity opp = new Opportunity(Name='foo', CampaignId=cam.id, Amount = 8, AccountID=acc.id, CloseDate=system.today(), StageName=UTIL_UnitTestData_TEST.getClosedWonStage());
         Test.startTest();
         insert opp;
         Test.stopTest();
 
-        list<Allocation__c>  queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id];
+        list<Allocation__c>  queryAllo = getAllocationsOrderByAmount(opp.id);
         system.assertEquals(1,queryAllo.size(), 'A single allocation should be created.');
         system.assertEquals(listGau[1].id, queryAllo[0].General_Accounting_Unit__c, 'The single allocation should be assigned to the active GAU.');
         system.assertEquals(50, queryAllo[0].Percent__c, 'The allocation should be percent based.');
@@ -500,16 +533,18 @@ private with sharing class ALLO_Allocations_TEST {
         listGau[1].Active__c = false;
         update listGau[1];
 
-        ALLO_Allocations_TDTM.resetFlags(false);
         opp.Amount = 80;
 
+        Exception ex = null;
         try {
             update opp;
-        } catch(exception e) {
-            // we know the update will fail, but lets make sure the allocations are not changed.
+        } catch (Exception e) {
+            ex = e;
         }
+        system.assertNotEquals(null, ex, 'An exception should be thrown.');
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp.id];
+        //ensure the allocations are not changed.
+        queryAllo = getAllocationsOrderByAmount(opp.id);
         system.assertEquals(4,queryAllo[0].Amount__c, 'Allocation to inactive GAU should not be modified.');
         
     }
@@ -530,8 +565,8 @@ private with sharing class ALLO_Allocations_TEST {
         
         setupSettings(new Allocations_Settings__c(Default_Allocations_Enabled__c = true, Default__c = defaultGau.id));
 
-        //setting flags to not create default allocations for the new opportunities
-        ALLO_Allocations_TDTM.resetFlags(true);
+        // disable the allocations trigger to prevent allocations from being created at all
+        TDTM_ProcessControl.toggleTriggerState('Opportunity', 'ALLO_Allocations_TDTM', false);
 
         Account acc = new Account(Name='foo');
         insert acc;
@@ -540,7 +575,7 @@ private with sharing class ALLO_Allocations_TEST {
         insert opp1;
         insert opp2;
 
-        list<Allocation__c>  queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c];
+        list<Allocation__c>  queryAllo = getAllocationsOrderByAmount();
         system.assertEquals(0,queryAllo.size(), 'No default allocation should be created.');
 
         Allocation__c nonDefaultAllo = new Allocation__c(Opportunity__c=opp1.id, Amount__c = 4, General_Accounting_Unit__c = otherGau.id);
@@ -554,8 +589,69 @@ private with sharing class ALLO_Allocations_TEST {
         system.assertEquals(1,queryAllo.size(), 'A default allocation should be created.');
         system.assertEquals(4, queryAllo[0].Amount__c, 'The default allocation should be of the unallocated amount of the Opportunity.');
 
-        queryAllo = [SELECT Id, Amount__c, Percent__c, General_Accounting_Unit__c FROM Allocation__c WHERE Opportunity__c = :opp2.id];
+        queryAllo = getAllocationsOrderByAmount(opp2.id);
         system.assertEquals(1,queryAllo.size(), 'A default allocation should be created.');
         system.assertEquals(8, queryAllo[0].Amount__c, 'The default allocation should be of the total amount of the Opportunity.');
+    }
+
+    // Helpers
+    ////////////
+
+    /*********************************************************************************************************
+    * @description Get all Allocations ordered by Amount
+    * @return List<Allocation__c> A list of all Allocations 
+    **********************************************************************************************************/
+    private static List<Allocation__c> getAllocationsOrderByAmount() {
+        return Database.query(getAllocationsQuery().build() + ' ORDER BY Amount__c');
+    }
+
+    /*********************************************************************************************************
+    * @description Get all Allocations ordered by Percent
+    * @return List<Allocation__c> A list of all Allocations 
+    **********************************************************************************************************/
+    private static List<Allocation__c> getAllocationsOrderByPercent() {
+        return Database.query(getAllocationsQuery().build() + ' ORDER BY Percent__c');
+    }
+
+    /*********************************************************************************************************
+    * @description Get Allocations for the Opportunity ordered by Amount
+    * @param oppId An Opportunity Id
+    * @return List<Allocation__c> A list of Allocations assigned to the Opportunity
+    **********************************************************************************************************/
+    private static List<Allocation__c> getAllocationsOrderByAmount(Id oppId) {
+        return Database.query(getAllocationsQuery(oppId).build() + ' ORDER BY Amount__c');
+    }
+
+    /*********************************************************************************************************
+    * @description Get Allocations for the Opportunity ordered by Percent
+    * @param oppId An Opportunity Id
+    * @return List<Allocation__c> A list of Allocations assigned to the Opportunity
+    **********************************************************************************************************/
+    private static List<Allocation__c> getAllocationsOrderByPercent(Id oppId) {
+        return Database.query(getAllocationsQuery(oppId).build() + ' ORDER BY Percent__c');
+    }
+
+    /*********************************************************************************************************
+    * @description Build query to retrieve Allocations for the Opportunity
+    * @return UTIL_Query Allocation SOQL
+    **********************************************************************************************************/
+    private static UTIL_Query getAllocationsQuery(Id oppId) {
+        return getAllocationsQuery()
+            .withWhere(String.format('Opportunity__c = \'\'{0}\'\'', new String[] { oppId }));
+    }
+
+    /*********************************************************************************************************
+    * @description Build query to retrieve all Allocations
+    * @return UTIL_Query Allocation SOQL
+    **********************************************************************************************************/
+    private static UTIL_Query getAllocationsQuery() {
+        return new UTIL_Query()
+            .withSelectFields(new String[]{
+                'General_Accounting_Unit__c', 
+                'General_Accounting_Unit__r.Name', 
+                'Amount__c', 
+                'Percent__c' 
+            })
+            .withFrom('Allocation__c');
     }
 }

@@ -163,6 +163,7 @@ public without sharing class STG_PanelHealthCheck_CTRL extends STG_Panel {
         verifyAccountModel(); 
         verifyAccountData();
         verifyAccountData2();
+        verifyAccountModelRecordType();
         verifyContactData();
         verifyNoOrphanedHouseholds();
         verifyNoOrphanedOne2OneAccounts();
@@ -287,6 +288,51 @@ public without sharing class STG_PanelHealthCheck_CTRL extends STG_Panel {
         } catch (exception ex) {
             createDR(Label.healthLabelAccountModelData, statusError,  ex.getMessage(), null);                   
         }    
+    }
+
+    /*********************************************************************************************************
+    * @description Verifies HouseHold and One To One RecordTypes are not the default RecordType for the current User.
+    */
+    @TestVisible
+    private void verifyAccountModelRecordType() {
+        try {
+           
+            Id npspHouseholdRecordType = STG_Panel.stgService.stgCon.npe01__HH_Account_RecordTypeID__c;
+            Id npspOneToOneRecordType = STG_Panel.stgService.stgCon.npe01__One_to_One_RecordTypeID__c;
+            Map<Id,Schema.RecordTypeInfo> accountRecordTypeInfosById = UTIL_Describe.getObjectDescribe('Account').getRecordTypeInfosById();
+
+            //Check if the Household and the One To One Record Type in the Settings are valid. 
+            //This should never happen, unless the User manually updates the Account Model Record Type in the Custom Settings.
+            if (
+                (npspHouseholdRecordType != null && accountRecordTypeInfosById.keySet().contains(npspHouseholdRecordType) == false) ||
+                (npspOneToOneRecordType != null && accountRecordTypeInfosById.keySet().contains(npspOneToOneRecordType) == false)
+            ) {
+                createDR(System.Label.healthLabelAccountDefaultRT, statusError, System.Label.healthDetailsAccountDefaultRTInvalid, System.Label.healthSolutionAccountDefaultRTInvalid);
+                return;
+            }
+
+            //Check the Household and One To One Record Type in the Settings and create a failed test if it is the Default one on the Account.
+            for (Schema.RecordTypeInfo accountRecordTypeInfo : accountRecordTypeInfosById.values()) {
+                if (
+                    accountRecordTypeInfo.isDefaultRecordTypeMapping() &&
+                    (accountRecordTypeInfo.getRecordTypeId() == npspHouseholdRecordType || accountRecordTypeInfo.getRecordTypeId() == npspOneToOneRecordType)
+                ) {
+                    createDR(
+                        System.Label.healthLabelAccountDefaultRT, 
+                        statusError, 
+                        String.format(System.Label.healthDetailsAccountDefaultRTIssue, new List<String>{accountRecordTypeInfo.getName()}),
+                        System.Label.healthSolutionAccountDefaultRTIssue
+                    );
+                    return;
+                }
+            }
+
+            //Create a success test
+            createDR(System.Label.healthLabelAccountDefaultRT, statusSuccess, null, null);
+        }
+        catch(Exception ex) {
+            createDR(System.Label.healthLabelAccountDefaultRT, statusError,  ex.getMessage(), null); 
+        } 
     }
 
     /*********************************************************************************************************
@@ -572,6 +618,7 @@ public without sharing class STG_PanelHealthCheck_CTRL extends STG_Panel {
     * @description Verifies that the default trigger handlers exist in the Trigger_Handler object, and warns
     * about any NPSP triggers marked as Async.
     */
+    @TestVisible
     private void verifyTriggerHandlers() {
         try {
             List<Trigger_Handler__c> listHandlersDefault = TDTM_DefaultConfig.getDefaultRecords();
@@ -587,8 +634,8 @@ public without sharing class STG_PanelHealthCheck_CTRL extends STG_Panel {
                         alreadyExists = true;
     
                         // Determine if order, action, active, async has changed
-                        if (defaultHandler.Load_Order__c != existingHandler.Load_Order__c || 
-                            defaultHandler.Trigger_Action__c != existingHandler.Trigger_Action__c ||
+                        if (defaultHandler.Load_Order__c != existingHandler.Load_Order__c ||
+                            !compareTriggerHandlerActions(defaultHandler, existingHandler) ||
                             defaultHandler.Active__c != existingHandler.Active__c ||
                             defaultHandler.Asynchronous__c != existingHandler.Asynchronous__c) {
                             
@@ -619,6 +666,25 @@ public without sharing class STG_PanelHealthCheck_CTRL extends STG_Panel {
         } catch (exception ex) {
             createDR(Label.healthLabelTriggerHandlerCheck, statusError, ex.getMessage(), null);                   
         }    
+    }
+
+    /**
+     * @description Compare the Trigger_Action list between two trigger handlers usnig logic that can ignore
+     * both case and the sequence of the actions in the list.
+     */
+    private static Boolean compareTriggerHandlerActions(Trigger_Handler__c handlerA, Trigger_Handler__c handlerB) {
+        List<String> listA = handlerA.Trigger_Action__c.toLowerCase().split(';');
+        List<String> listB = handlerB.Trigger_Action__c.toLowerCase().split(';');
+
+        Set<String> unionBintoA = new Set<String>();
+        unionBintoA.addAll(listA);
+        unionBintoA.addAll(listB);
+
+        // The number of elements in in unionBintoA should match the number of elements in listA and listB
+        if (listA.size() != listB.size() || unionBintoA.size() != listA.size() || unionBintoA.size() != listB.size()) {
+            return false;
+        }
+        return true;
     }
     
     /*********************************************************************************************************

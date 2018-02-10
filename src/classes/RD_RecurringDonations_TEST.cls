@@ -237,7 +237,7 @@ public class RD_RecurringDonations_TEST {
         r2.npe03__Organization__c = a.Id;
         r2.npe03__Amount__c = 100;
         r2.npe03__Installment_Period__c = system.label.npe03.RecurringDonationInstallmentPeriodMonthly;
-        r2.npe03__Date_Established__c = date.newinstance(1970,6,12);
+        r2.npe03__Date_Established__c = date.newinstance(1970,6,30);
         r2.npe03__Schedule_Type__c = system.label.npe03.RecurringDonationDivideValue;
         r2.npe03__Open_Ended_Status__c = 'None'; 
         insert r2;
@@ -245,14 +245,13 @@ public class RD_RecurringDonations_TEST {
         Opportunity[] installments2 = [select Name,amount,accountid,CloseDate from Opportunity where npe03__Recurring_Donation__c = :r2.id];
         system.assertEquals(3,installments2.size());
         system.assertEquals(33.33,installments2[0].Amount);
-        system.assertEquals(date.newinstance(1970,6,12),installments2[0].CloseDate);
+        system.assertEquals(date.newinstance(1970,6,30),installments2[0].CloseDate);
         system.assertEquals(33.33,installments2[1].Amount);
-        system.assertEquals(date.newinstance(1970,7,12),installments2[1].CloseDate);
+        system.assertEquals(date.newinstance(1970,7,30),installments2[1].CloseDate);
         system.assertEquals(33.34,installments2[2].Amount);
-        system.assertEquals(date.newinstance(1970,8,12),installments2[2].CloseDate);
+        system.assertEquals(date.newinstance(1970,8,30),installments2[2].CloseDate);
         system.assertEquals(a.id,installments2[0].AccountId);
         UTIL_Debug.debug('**** '+installments2);
-        RD_ProcessControl.hasRun = false;
 
         delete r2;
         
@@ -261,8 +260,6 @@ public class RD_RecurringDonations_TEST {
         system.assertEquals(3,installments3.size());
         system.assertEquals(33.33,installments3[0].Amount);
 
-        //flag needs to be reset as the delete and undelete are in the same context for tests.
-        UTIL_CascadeDeleteLookups_TDTM.disableCascade = false;
         undelete r2;
 
         installments3 = [select Amount, IsDeleted from Opportunity where npe03__Recurring_Donation__c = :r2.id];
@@ -278,20 +275,21 @@ public class RD_RecurringDonations_TEST {
     static testMethod void contactRolesOnOppsHHAccount() {
         contactRolesOnOppsProcessor(CAO_Constants.HH_ACCOUNT_PROCESSOR);
     }    
-    static void contactRolesOnOppsProcessor(string strProcessor)
-    {
+    static void contactRolesOnOppsProcessor(string strProcessor) {
         if (strTestOnly != '*' && strTestOnly != 'contactRolesOnOppsProcessor') return;
         
-        npe01__Contacts_and_Orgs_Settings__c contactSettingsForTests = UTIL_CustomSettingsFacade.getContactsSettingsForTests(
-            new npe01__Contacts_and_Orgs_Settings__c (npe01__Account_Processor__c = strProcessor, 
-                npe01__Opportunity_Contact_Role_Default_role__c = system.label.npe03.RecurringDonationContactRole));
+        UTIL_CustomSettingsFacade.getContactsSettingsForTests(new npe01__Contacts_and_Orgs_Settings__c(
+            npe01__Account_Processor__c = strProcessor, 
+            npe01__Opportunity_Contact_Role_Default_role__c = system.label.npe03.RecurringDonationContactRole
+        ));
             
         CAO_Constants.setIndividualAccountForTests(CAO_Constants.INDIVIDUAL_ACCOUNT_NAME_FOR_TESTS);
         
         Contact c = new Contact();
         c.FirstName = 'test';
         c.LastName = 'contact';
-        insert c;       
+        insert c; 
+
         Test.startTest();
         npe03__Recurring_Donation__c r1 = new npe03__Recurring_Donation__c();
         r1.Name = 'test';
@@ -304,9 +302,89 @@ public class RD_RecurringDonations_TEST {
         r1.npe03__Schedule_Type__c = system.label.npe03.RecurringDonationMultiplyValue;
         insert r1;
         Test.stopTest();
-        OpportunityContactRole[] installmentCRs = [select ContactId,OpportunityId,Role from OpportunityContactRole where Opportunity.npe03__Recurring_Donation__c = :r1.id];
+
+        OpportunityContactRole[] installmentCRs = [
+            SELECT ContactId, OpportunityId, Role 
+            FROM OpportunityContactRole 
+            WHERE Opportunity.npe03__Recurring_Donation__c = :r1.id
+        ];
         system.assertEquals(2,installmentCRs.size());
         system.assertEquals(system.label.npe03.RecurringDonationContactRole,installmentCRs[0].Role);
+    }
+
+    /*********************************************************************************************************
+    @description 
+        Test Primary Opportunity Contact Roles (OCRs) creation using oppContactRoles().
+        NOTE: Test the method even though it has not been used since NPSP3 which always 
+        leverages npe01__Contact_Id_for_Role__c field on Opportunity instead of calling this method. 
+    verify:
+        - New Primary OCRs are created for provided Opportunities having Recurring Donations 
+        with a specified Contact. 
+    **********************************************************************************************************/ 
+    private static testMethod void testOppContactRoleMethod() {
+        UTIL_CustomSettingsFacade.getContactsSettingsForTests(new npe01__Contacts_and_Orgs_Settings__c(
+            npe01__Account_Processor__c = CAO_Constants.HH_ACCOUNT_PROCESSOR, 
+            npe01__Opportunity_Contact_Role_Default_role__c = System.Label.npe03.RecurringDonationContactRole
+        ));
+            
+        CAO_Constants.setIndividualAccountForTests(CAO_Constants.INDIVIDUAL_ACCOUNT_NAME_FOR_TESTS);
+
+        Integer size = 3;
+        List<Contact> contacts = new List<Contact>();
+        for (Integer i = 0; i < size; i++) {
+            contacts.add(new Contact(LastName = 'foo' + i));
+        }
+        insert contacts;
+        contacts = new List<Contact>([SELECT LastName, AccountId FROM Contact]);
+
+        List<npe03__Recurring_Donation__c> rds = new List<npe03__Recurring_Donation__c>();
+        for (Contact c : contacts) {
+            rds.add(new npe03__Recurring_Donation__c(
+                Name = 'Test' + c.LastName,
+                npe03__Amount__c = 100,
+                npe03__Installment_Period__c = System.Label.npe03.RecurringDonationInstallmentPeriodYearly,
+                npe03__Date_Established__c = Date.newInstance(1970, 6, 12),
+                npe03__Schedule_Type__c = System.Label.npe03.RecurringDonationMultiplyValue,
+                npe03__Contact__c = c.Id
+            ));
+        }
+
+        // Execute the insert of Recurring Donations in start/stop Test to create Primary OCRs 
+        // by utilizing npe01__Contact_Id_for_Role__c field on Opportunity if it exists. 
+        // Otherwise, the Recurring Donations code should execute oppContactRoles() instead.
+        Test.startTest();
+        insert rds;
+        Test.stopTest();
+
+        List<Opportunity> opps = new List<Opportunity>([
+            SELECT Id, Name
+            FROM Opportunity
+            WHERE npe03__Recurring_Donation__c IN :rds
+        ]);
+
+        opps.add(new Opportunity(
+            Amount = 200,
+            AccountId = contacts[0].AccountId,
+            Name = 'Test Opp',
+            StageName = UTIL_UnitTestData_TEST.getClosedWonStage(),
+            CloseDate = System.today(),
+            npe03__Recurring_Donation__c = rds[0].Id
+        ));
+        upsert opps;
+
+        Set<Id> oppIds = new Map<Id, Opportunity>(opps).keySet();
+        Set<Id> rdIds = new Map<Id, npe03__Recurring_Donation__c>(rds).keySet();
+
+        delete getPrimaryOppContactRoles(rdIds);
+        System.assertEquals(0, getPrimaryOppContactRoles(rdIds).size(), 'Opportunity Contact Roles should be deleted if created');
+
+        RD_RecurringDonations.oppContactRoles(oppIds);
+
+        System.assertEquals(opps.size(), getPrimaryOppContactRoles(rdIds).size(), 'Opportunity Contact Role should be created for each Opportunity');
+
+        // Execute the method again and ensure no duplicate OCR is created
+        RD_RecurringDonations.oppContactRoles(oppIds);
+        System.assertEquals(opps.size(), getPrimaryOppContactRoles(rdIds).size(), 'No new Opportunity Contact Role should be created when oppContactRoles() is called once more');
     }
     
     static testMethod void testSettingsCreation() {
@@ -429,7 +507,6 @@ public class RD_RecurringDonations_TEST {
         integer cOpp =  originalOpps.size();
         system.assert(cOpp == 52 || cOpp == 53);        
         system.assertEquals(100, originalOpps[0].Amount);
-        RD_ProcessControl.hasRun = false;
         Test.startTest();
         r1.npe03__Installment_Period__c = system.label.npe03.RecurringDonationInstallmentPeriodMonthly;
         update r1;
@@ -469,7 +546,6 @@ public class RD_RecurringDonations_TEST {
         r1.npe03__Open_Ended_Status__c = system.label.npe03.RecurringDonationOpenStatus;
         r1.npe03__Next_Payment_Date__c = system.today();
        
-        RD_ProcessControl.hasRun = false;
         Test.startTest();
         insert r1;
         Test.stopTest();
@@ -516,7 +592,6 @@ public class RD_RecurringDonations_TEST {
         integer cOpp =  originalOpps.size();
         system.assert(cOpp == 52 || cOpp == 53);        
         system.assertEquals(100, originalOpps[0].Amount);
-        RD_ProcessControl.hasRun = false;
         Test.startTest();
         r1.npe03__Installment_Period__c = system.label.npe03.RecurringDonationInstallmentPeriodYearly;
         update r1;
@@ -560,7 +635,6 @@ public class RD_RecurringDonations_TEST {
         
         system.assertEquals(12, originalOpps.size());
         system.assertEquals(100, originalOpps[0].Amount);
-        RD_ProcessControl.hasRun = false;
         Test.startTest();
         r1.npe03__Installment_Period__c = system.label.npe03.RecurringDonationInstallmentPeriodWeekly;
         update r1;
@@ -606,7 +680,6 @@ public class RD_RecurringDonations_TEST {
         integer cOpp =  originalOpps.size();
         system.assert(cOpp == 52 || cOpp == 53);        
         system.assertEquals(100, originalOpps[0].Amount);
-        RD_ProcessControl.hasRun = false;
         Test.startTest();
         r1.npe03__Installment_Period__c = system.label.npe03.RecurringDonationInstallmentPeriodQuarterly;
         update r1;
@@ -657,8 +730,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method
@@ -715,8 +787,7 @@ public class RD_RecurringDonations_TEST {
         o1.StageName = closedstage;
         o1.CloseDate = system.today();
         list<Opportunity> oppList = new list<Opportunity>{o1};
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update oppList;
         //call the update method
@@ -771,8 +842,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method
@@ -833,8 +903,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method
@@ -895,8 +964,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method        
@@ -957,8 +1025,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method
@@ -1020,8 +1087,7 @@ public class RD_RecurringDonations_TEST {
         string closedstage = [select masterlabel from opportunitystage where isActive = true and iswon = true and isClosed = true limit 1].masterlabel;
         o.StageName = closedstage;
         o.CloseDate = system.today();
-        RD_ProcessControl.hasRun = false;
-        Test.startTest();        
+        Test.startTest();
         //update opp
         update o;
         //call the update method
@@ -1032,5 +1098,24 @@ public class RD_RecurringDonations_TEST {
         
         system.assertEquals(0, [select count() from Opportunity where npe03__Recurring_Donation__c = :r1.id and isClosed = false]);
         system.assertEquals(system.today(), rd.npe03__Last_Payment_Date__c);
+    }
+
+    // Helpers
+    ////////////
+
+    /*********************************************************************************************************
+    * @description Retrieve Primary Opportunity Contact Roles for specified Recurring Donations
+    * @param rdIds Recurring Donation Ids
+    * @return List<OpportunityContactRole>
+    **********************************************************************************************************/
+    private static List<OpportunityContactRole> getPrimaryOppContactRoles(Set<Id> rdIds) {
+        List<OpportunityContactRole> ocrs = new List<OpportunityContactRole>([ 
+            SELECT ContactId, OpportunityId, Role 
+            FROM OpportunityContactRole 
+            WHERE Opportunity.npe03__Recurring_Donation__c IN :rdIds AND 
+            isPrimary = true
+        ]);
+
+        return ocrs == null ? new List<OpportunityContactRole>() : ocrs;
     }
 }

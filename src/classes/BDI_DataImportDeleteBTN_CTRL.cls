@@ -78,7 +78,7 @@ public with sharing class BDI_DataImportDeleteBTN_CTRL {
             if (isDeleteAll) {
                 delete [SELECT Id FROM DataImport__c LIMIT 10000];
             } else {
-                delete [SELECT Id FROM DataImport__c WHERE Status__c = :label.bdiImported LIMIT 10000];
+                delete [SELECT Id FROM DataImport__c WHERE Status__c = :BDI_DataImport_API.bdiImported LIMIT 10000];
             }
 
             return close(); 
@@ -95,9 +95,12 @@ public with sharing class BDI_DataImportDeleteBTN_CTRL {
      */
     public PageReference close() {
         String retUrl = ApexPages.currentPage().getParameters().get('retURL');
-        if (String.isBlank(retUrl)) retUrl = '/home/home.jsp';
-
-        PageReference p = new PageReference(retUrl);
+        PageReference p;
+        if (!String.isBlank(retUrl)) {
+            p = new PageReference(retUrl);
+        } else {
+            p = USER_UserService.getHomePageReference();
+        }
         p.setRedirect(true);
         return p;
     }

@@ -592,8 +592,16 @@
         <categories>Error</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>CascadeDeletionError</shortDescription>
-        <value>Your attempt to delete {0} could not be completed because it is associated with the following records. Delete or re-associate these records and then try deleting {0} again.</value>
+        <shortDescription>Cascade Deletion Error Message In Classic</shortDescription>
+        <value>You can&apos;&apos;t delete {0} because it&apos;&apos;s associated with the following records. Delete or re-associate these records and then try again.&lt;br/&gt;&lt;br/&gt;{1}</value>
+    </labels>
+    <labels>
+        <fullName>CascadeDeletionErrorLightning</fullName>
+        <categories>Error</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Cascade Deletion Error Message In Lightning Experience</shortDescription>
+        <value>You can&apos;&apos;t delete {0} because it&apos;&apos;s associated with these records: {1}. Delete or re-associate these records and then try again.</value>
     </labels>
     <labels>
         <fullName>ClosedWonOpportunities</fullName>
@@ -609,7 +617,21 @@
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>ConfirmDeleteAccount</shortDescription>
-        <value>{0} is the only contact in the {1} account. Deleting this contact would leave an empty account. Would you like to delete {1} instead?</value>
+        <value>{0} is the only Contact in the {1} Account. Deleting this Contact would leave an empty Account. Would you like to delete {1}, including {0}, instead?</value>
+    </labels>
+    <labels>
+        <fullName>DeleteAccount</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>DeleteAccount</shortDescription>
+        <value>Delete Account</value>
+    </labels>
+    <labels>
+        <fullName>DeleteContactLeaveAccount</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>DeleteContactLeaveAccount</shortDescription>
+        <value>Delete Contact and Leave Empty Account</value>
     </labels>
     <labels>
         <fullName>EPAddDependentTask</fullName>
@@ -694,6 +716,14 @@ If you’re not sure how to resolve these errors, post a message in the Nonprofi
         <protected>false</protected>
         <shortDescription>HiddenForSecurity</shortDescription>
         <value>Hidden for security</value>
+    </labels>
+    <labels>
+        <fullName>InactiveScheduledJobsOwnerErrMsg</fullName>
+        <categories>User</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>InactiveScheduledJobsOwnerErrMsg</shortDescription>
+        <value>There are scheduled jobs owned by an inactive user. Review your scheduled jobs and ensure the owner of each one is an active user.</value>
     </labels>
     <labels>
         <fullName>NameRequired</fullName>
@@ -790,6 +820,167 @@ If you’re not sure how to resolve these errors, post a message in the Nonprofi
         <protected>false</protected>
         <shortDescription>Relationship Viewer - View Contact Record</shortDescription>
         <value>View Contact Record</value>
+    </labels>
+    <labels>
+        <fullName>RP_CustomerJourneyLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Customer Journey link</shortDescription>
+        <value>Salesforce.org Webinars and Events</value>
+    </labels>
+    <labels>
+        <fullName>RP_DeeperParagraph</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Deeper Paragraph</shortDescription>
+        <value>Dive deeper into Salesforce and learn everything you need to be successful.</value>
+    </labels>
+    <labels>
+        <fullName>RP_DeeperSubtitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Deeper Subtitle</shortDescription>
+        <value>3. Dive Deeper</value>
+    </labels>
+    <labels>
+        <fullName>RP_GettingStarted</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Getting Started component title</shortDescription>
+        <value>Getting Started</value>
+    </labels>
+    <labels>
+        <fullName>RP_GitHubSubtitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - GitHub Subtitle</shortDescription>
+        <value>updates are pushed automatically; no installation needed!</value>
+    </labels>
+    <labels>
+        <fullName>RP_GitHubTitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - GitHub title</shortDescription>
+        <value>Latest Release Notes</value>
+    </labels>
+    <labels>
+        <fullName>RP_NpspLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Npsp Link</shortDescription>
+        <value>Getting Started with Salesforce for Nonprofits</value>
+    </labels>
+    <labels>
+        <fullName>RP_ProductNameLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Product Name</shortDescription>
+        <value>Nonprofit Success Pack (NPSP)</value>
+    </labels>
+    <labels>
+        <fullName>RP_ReleaseGitHub</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Release GitHub</shortDescription>
+        <value>Released:</value>
+    </labels>
+    <labels>
+        <fullName>RP_ReleaseNotesLink</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Release Notes Link</shortDescription>
+        <value>Read full release notes &gt;</value>
+    </labels>
+    <labels>
+        <fullName>RP_Remote_Site_Settings_Deactivated</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>RP Remote Site Settings Deactivated</shortDescription>
+        <value>To take advantage of all the new functionality on the Getting Started page, you need to make sure the Remote Site is active. Go to Setup, search for Remote Site Settings, then click Edit next to SFDOEndpoints. Ensure that the Active box is checked, then click Save.</value>
+    </labels>
+    <labels>
+        <fullName>RP_SalesforceOrgLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Salesforce Org Link</shortDescription>
+        <value>Hub Community Weekly Office Hours</value>
+    </labels>
+    <labels>
+        <fullName>RP_SubTitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - SubTitle</shortDescription>
+        <value>You now have access to ALL the powerful features of Salesforce Enterprise Edition PLUS the ability to better manage donors with the Nonprofit Success Pack application. Now let&apos;s get started.</value>
+    </labels>
+    <labels>
+        <fullName>RP_Title</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Title</shortDescription>
+        <value>Welcome to Salesforce and the</value>
+    </labels>
+    <labels>
+        <fullName>RP_TrailheadLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Trailhead Link</shortDescription>
+        <value>Getting Started with Salesforce and NPSP Trailmix</value>
+    </labels>
+    <labels>
+        <fullName>RP_TrailheadParagraph</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Trailhead Paragraph</shortDescription>
+        <value>Get started with the Nonprofit Success Pack by learning the basics of Salesforce and donor and volunteer management.</value>
+    </labels>
+    <labels>
+        <fullName>RP_TrailheadSubtitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Trailhead Subtitle</shortDescription>
+        <value>1. Learn with Trailhead</value>
+    </labels>
+    <labels>
+        <fullName>RP_USParagraph</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Power of Us Paragraph</shortDescription>
+        <value>Get help from our active community of fellow NPSP users, or reach out to Salesforce.org.</value>
+    </labels>
+    <labels>
+        <fullName>RP_UsHubLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Power of Us Hub Link</shortDescription>
+        <value>Power of Us HUB</value>
+    </labels>
+    <labels>
+        <fullName>RP_UsSubtitle</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Power of Us Subtitle</shortDescription>
+        <value>2. Join the Community</value>
+    </labels>
+    <labels>
+        <fullName>RP_Videos</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Youtube Videos</shortDescription>
+        <value>How-To videos</value>
+    </labels>
+    <labels>
+        <fullName>RP_WebinarLinkLabel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Webinar Link</shortDescription>
+        <value>NPSP Product Documentation</value>
+    </labels>
+    <labels>
+        <fullName>RP_YoutubeChannel</fullName>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Resources Page - Salesforce Foundation Youtube Channel</shortDescription>
+        <value>View more on our youtube channel &gt;</value>
     </labels>
     <labels>
         <fullName>RecurringDonationAccountAndContactError</fullName>
@@ -914,7 +1105,7 @@ If you’re not sure how to resolve these errors, post a message in the Nonprofi
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>alloAmountOrPercent</shortDescription>
-        <value>Each allocation must have either an assigned amount or percent.</value>
+        <value>Each Allocation must have a value in either the Amount field or the Percent field.</value>
     </labels>
     <labels>
         <fullName>alloBatchCreateDefault</fullName>
@@ -968,7 +1159,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>alloCantAllocateNothing</shortDescription>
-        <value>You can only create allocations for opportunities with a positive amount.</value>
+        <value>You can only create Allocations for Opportunities with a positive value in the Amount field.</value>
     </labels>
     <labels>
         <fullName>alloDefaultGAUMissing</fullName>
@@ -1040,7 +1231,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>alloNegativeAmount</shortDescription>
-        <value>Allocations cannot have a negative amount.</value>
+        <value>The Amount field on an Allocation must contain a positive value.</value>
     </labels>
     <labels>
         <fullName>alloNegativePercent</fullName>
@@ -1048,7 +1239,15 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>alloNegativePercent</shortDescription>
-        <value>Allocations cannot have a negative percent.</value>
+        <value>The Percent field on an Allocation must contain a positive value.</value>
+    </labels>
+    <labels>
+        <fullName>alloObjectUnsupported</fullName>
+        <categories>Allocation</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>alloObjectUnsupported</shortDescription>
+        <value>The Manage Allocations button is only supported from a Campaign, Opportunity or Recurring Donation record.</value>
     </labels>
     <labels>
         <fullName>alloPercentExceed100</fullName>
@@ -1164,7 +1363,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
     </labels>
     <labels>
         <fullName>bdiBtnClose</fullName>
-        <categories>Data Importer</categories>
+        <categories>Data Importer, Opportunity Send Acknowledgment</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>bdiBtnClose</shortDescription>
@@ -1347,6 +1546,78 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>When Donation matching is enabled, you must select one or more fields in Donation Matching Rule.</value>
     </labels>
     <labels>
+        <fullName>bdiDryRunBeginButton</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>button label for begin Dry Run</shortDescription>
+        <value>Begin Dry Run</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunMatched</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>DI Object Status that it was matched in Dry Run</shortDescription>
+        <value>Dry Run - Matched</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunMatchedBest</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>status on a bdi object to specify it was matched from an ambiguous set in Dry Rn</shortDescription>
+        <value>Dry Run - Best Match Used</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunMatchedId</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>BDI status when matching an object by its Salesforce ID in Dry Run</shortDescription>
+        <value>Dry Run - Matched by Id</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunNoMatch</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>DI Object Status that it was not matched in Dry Run</shortDescription>
+        <value>Dry Run - Matched None</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunRecordsError</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>progress field label</shortDescription>
+        <value>Records with errors:</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunRecordsValidated</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>label on progress widget during Dry Run</shortDescription>
+        <value>Records validated:</value>
+    </labels>
+    <labels>
+        <fullName>bdiDryRunTitle</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>title on the progress indicator during dry run mode</shortDescription>
+        <value>NPSP Data Importer - Dry Run</value>
+    </labels>
+    <labels>
+        <fullName>bdiErrorBatchNameRequired</fullName>
+        <categories>Data Importer</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>error when a batch is missing a name</shortDescription>
+        <value>Batch Name is a required field.</value>
+    </labels>
+    <labels>
         <fullName>bdiErrorDonationLookupMatch</fullName>
         <categories>Data Importer</categories>
         <language>en_US</language>
@@ -1399,8 +1670,8 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <categories>Data Importer</categories>
         <language>en_US</language>
         <protected>true</protected>
-        <shortDescription>error thrown if specified class doesn&apos;t support BDI_IMatchDonations</shortDescription>
-        <value>The Apex class {0} was not found or does not support the BDI_IMatchDonations interface.</value>
+        <shortDescription>error thrown if specified class doesn&apos;t support the given BDI interface</shortDescription>
+        <value>The Apex class {0} was not found or does not support the {1} interface.</value>
     </labels>
     <labels>
         <fullName>bdiErrorInvalidLastname</fullName>
@@ -1520,7 +1791,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>error when numeric settings set to negative number</shortDescription>
-        <value>Number of Days from Donation Date must be a positive number.</value>
+        <value>{0} must be a positive number.</value>
     </labels>
     <labels>
         <fullName>bdiRecordsFailed</fullName>
@@ -1651,12 +1922,92 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Failed to create Account for Contact {0} {1}. {2}</value>
     </labels>
     <labels>
+        <fullName>conMergeBtnLabel</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeBtnLabel</shortDescription>
+        <value>Merge</value>
+    </labels>
+    <labels>
         <fullName>conMergeErrNoPersonAccounts</fullName>
         <categories>Contact Merge</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>conMergeErrNoPersonAccounts</shortDescription>
         <value>Person accounts are not supported.</value>
+    </labels>
+    <labels>
+        <fullName>conMergeFoundContacts</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeFoundContacts</shortDescription>
+        <value>Found Contacts</value>
+    </labels>
+    <labels>
+        <fullName>conMergePageTitle</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergePageTitle</shortDescription>
+        <value>Contact Merge</value>
+    </labels>
+    <labels>
+        <fullName>conMergePageTitleDetail</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergePageTitleDetail</shortDescription>
+        <value>Merge Duplicate Contact Records</value>
+    </labels>
+    <labels>
+        <fullName>conMergeSearchPlaceholder</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeSearchPlaceholder</shortDescription>
+        <value>Search Contacts</value>
+    </labels>
+    <labels>
+        <fullName>conMergeSelectAll</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeSelectAll</shortDescription>
+        <value>Select All</value>
+    </labels>
+    <labels>
+        <fullName>conMergeSelectContact</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeSelectContact</shortDescription>
+        <value>Select Contact</value>
+    </labels>
+    <labels>
+        <fullName>conMergeSelectedContacts</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeSelectedContacts</shortDescription>
+        <value>Selected Contacts</value>
+    </labels>
+    <labels>
+        <fullName>conMergeStageComplete</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeStageComplete</shortDescription>
+        <value>Stage Complete</value>
+    </labels>
+    <labels>
+        <fullName>conMergeWinnerAsstText</fullName>
+        <categories>Contact Merge</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>conMergeWinnerAsstText</shortDescription>
+        <value>Choose this column as the master record</value>
     </labels>
     <labels>
         <fullName>engagementPlanCantEdit</fullName>
@@ -1721,6 +2072,22 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <protected>false</protected>
         <shortDescription>healthDetailsAccOne2OneNoContacts</shortDescription>
         <value>There are {0} One-to-One Accounts who have no Contacts.</value>
+    </labels>
+    <labels>
+        <fullName>healthDetailsAccountDefaultRTInvalid</fullName>
+        <categories>Health Check</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>healthDetailsAccountDefaultRTInvalid</shortDescription>
+        <value>The Record Type selected for the current Account Model isn&apos;t valid.</value>
+    </labels>
+    <labels>
+        <fullName>healthDetailsAccountDefaultRTIssue</fullName>
+        <categories>Health Check</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>healthDetailsAccountDefaultRTIssue</shortDescription>
+        <value>The Record Type, {0}, is selected for the current Account Model (in NPSP Settings) and is used as your profile&apos;&apos;s default Account Record Type.</value>
     </labels>
     <labels>
         <fullName>healthDetailsAccountModel</fullName>
@@ -2138,6 +2505,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Account Data</value>
     </labels>
     <labels>
+        <fullName>healthLabelAccountDefaultRT</fullName>
+        <categories>Health Check</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>healthLabelAccountDefaultRT</shortDescription>
+        <value>Account Model Record Type</value>
+    </labels>
+    <labels>
         <fullName>healthLabelAccountModelData</fullName>
         <categories>Health Check</categories>
         <language>en_US</language>
@@ -2432,6 +2807,22 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <protected>false</protected>
         <shortDescription>healthSolutionAccOne2OneNoContacts</shortDescription>
         <value>Consider deleting these unused One-to-One Accounts to save space.</value>
+    </labels>
+    <labels>
+        <fullName>healthSolutionAccountDefaultRTInvalid</fullName>
+        <categories>Health Check</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>healthSolutionAccountDefaultRTInvalid</shortDescription>
+        <value>Go to &lt;strong&gt;People | Account Model&lt;/strong&gt; and select a valid Record Type.</value>
+    </labels>
+    <labels>
+        <fullName>healthSolutionAccountDefaultRTIssue</fullName>
+        <categories>Health Check</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>healthSolutionAccountDefaultRTIssue</shortDescription>
+        <value>The Record Type selected for the current Account Model should not be used as the default Account Record Type for any Profile in this Salesforce organization. Using the same Record Type could cause various data issues.</value>
     </labels>
     <labels>
         <fullName>healthSolutionAccountModel</fullName>
@@ -2741,7 +3132,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>hhCmpDedupeNoReport</shortDescription>
-        <value>Could not find report. Create a report with the Report Unique Name of  &apos;NPSP_Campaign_Household_Mailing_List&apos;. NOTE: Report type should be Campaigns with Contacts. Filter for Member Status does not contain &apos;Duplicate&apos;.</value>
+        <value>Could not find the report. Create a report and save it with the Report Unique Name of &apos;NPSP_Campaign_Household_Mailing_List_V2&apos;. Use the Campaigns with Contacts report type and add filters for CampaignId equals blank and Member Status does not contain &apos;Duplicate&apos;.</value>
     </labels>
     <labels>
         <fullName>hhCmpDedupeStatus</fullName>
@@ -2886,6 +3277,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Do you want to remove this Contact from this Household on Save?</value>
     </labels>
     <labels>
+        <fullName>lblExtendedStatus</fullName>
+        <categories>UTIL_JobProgressLightning</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>lblExtendedStatus</shortDescription>
+        <value>Extended Status</value>
+    </labels>
+    <labels>
         <fullName>lblFindInContacts</fullName>
         <categories>Manage Household UI</categories>
         <language>en_US</language>
@@ -2990,6 +3389,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Postal Code</value>
     </labels>
     <labels>
+        <fullName>lblProgress</fullName>
+        <categories>UTIL_JobProgressLightning</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>lblProgress</shortDescription>
+        <value>Progress</value>
+    </labels>
+    <labels>
         <fullName>lblRequired</fullName>
         <categories>Engagement Plan, UTIL_FormField</categories>
         <language>en_US</language>
@@ -3014,12 +3421,28 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>State</value>
     </labels>
     <labels>
+        <fullName>lblStatus</fullName>
+        <categories>UTIL_JobProgressLightning</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>lblStatus</shortDescription>
+        <value>Status</value>
+    </labels>
+    <labels>
         <fullName>lblStreet</fullName>
         <categories>Manage Household UI</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>lblStreet</shortDescription>
         <value>Street</value>
+    </labels>
+    <labels>
+        <fullName>lblYouAreHere</fullName>
+        <categories>UTIL_PageHeader</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>lblYouAreHere</shortDescription>
+        <value>You are here:</value>
     </labels>
     <labels>
         <fullName>leadConvertAccountName</fullName>
@@ -3215,7 +3638,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
     </labels>
     <labels>
         <fullName>lvlBtnSaveAndNew</fullName>
-        <categories>Levels</categories>
+        <categories>UTIL_PageHeader</categories>
         <language>en_US</language>
         <protected>true</protected>
         <shortDescription>Save &amp; New button on the Level Edit page</shortDescription>
@@ -3406,6 +3829,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Organization Donations</value>
     </labels>
     <labels>
+        <fullName>pmtModifyCurrency</fullName>
+        <categories>Payment, Error</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>pmtModifyCurrency</shortDescription>
+        <value>You can&apos;t modify payment currencies directly. A payment&apos;s currency is updated when the parent Opportunity currency is modified.</value>
+    </labels>
+    <labels>
         <fullName>pmtWizardBtnCalcPayments</fullName>
         <categories>Payment Wizard</categories>
         <language>en_US</language>
@@ -3460,6 +3891,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <protected>false</protected>
         <shortDescription>pmtWizardInterval</shortDescription>
         <value>Interval</value>
+    </labels>
+    <labels>
+        <fullName>pmtWizardMonth</fullName>
+        <categories>Payment Wizard</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>pmtWizardMonth</shortDescription>
+        <value>Month</value>
     </labels>
     <labels>
         <fullName>pmtWizardMsgNoOppFound</fullName>
@@ -3566,6 +4005,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <value>Warning</value>
     </labels>
     <labels>
+        <fullName>pmtWizardWeek</fullName>
+        <categories>Payment Wizard</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>pmtWizardWeek</shortDescription>
+        <value>Week</value>
+    </labels>
+    <labels>
         <fullName>pmtWizardWriteoffDate</fullName>
         <categories>Payment Wizard</categories>
         <language>en_US</language>
@@ -3580,6 +4027,14 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
         <protected>false</protected>
         <shortDescription>pmtWizardWriteoffMessage</shortDescription>
         <value>You are preparing to write off {0} Payment(s) totaling {1}.</value>
+    </labels>
+    <labels>
+        <fullName>pmtWizardYear</fullName>
+        <categories>Payment Wizard</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>pmtWizardYear</shortDescription>
+        <value>Year</value>
     </labels>
     <labels>
         <fullName>pscDeleteRow</fullName>
@@ -3863,7 +4318,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
     </labels>
     <labels>
         <fullName>stgBtnCancel</fullName>
-        <categories>Settings</categories>
+        <categories>Settings, UTIL_PageHeader</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>stgBtnCancel</shortDescription>
@@ -4039,7 +4494,7 @@ To check your GAU Allocation settings, go to Donations | GAU Allocations.</value
     </labels>
     <labels>
         <fullName>stgBtnSave</fullName>
-        <categories>Settings</categories>
+        <categories>Settings, UTIL_PageHeader</categories>
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>stgBtnSave</shortDescription>
@@ -4402,7 +4857,7 @@ Once the process is 100% complete, you can safely leave or refresh this page.</v
         <language>en_US</language>
         <protected>false</protected>
         <shortDescription>stgHelpHHMailingListReport</shortDescription>
-        <value>The Household Mailing List Report deduplicates a Campaign that contains multiple Contacts from the same household in order to help prevent sending multiples of the same mailing to the same address. NPSP includes a report you can select called &quot;NPSP Campaign Household Mailing List.&quot; If that report has been renamed or deleted, select a report that uses the Campaigns with Contacts report type, with a filter for: Member Status does not contain &quot;Duplicate&quot;.</value>
+        <value>The Household Mailing List Report deduplicates a Campaign that contains multiple Contacts from the same household in order to help prevent sending multiples of the same mailing to the same address. NPSP includes a report you can select called &quot;NPSP Campaign Household Mailing List V2.&quot; If that report has been renamed or deleted, select a report that uses the Campaigns with Contacts report type, with a filter for: Member Status does not contain &quot;Duplicate&quot;.</value>
     </labels>
     <labels>
         <fullName>stgHelpHHNameFormat</fullName>
@@ -4953,6 +5408,15 @@ This process may take some time, but you can close this page and the process wil
         <protected>true</protected>
         <shortDescription>stgHelpRelSyncFields</shortDescription>
         <value>The custom Relationships fields you do not want synchronized between the two contacts in a relationship pair. Control or command click to select more than one field.</value>
+    </labels>
+    <labels>
+        <fullName>stgHelpRespectDuplicateRuleSettings</fullName>
+        <categories>Settings</categories>
+        <language>en_US</language>
+        <protected>true</protected>
+        <shortDescription>Respect the settings on a Duplicate Rule that control allowing duplicates.</shortDescription>
+        <value>Respect the settings on a Duplicate Rule that control whether duplicate records are allowed.
+To check your existing settings, go to Duplicate Rules under Setup. For any rule, when the Action On Create or Action On Edit fields are set to &quot;Allow,&quot; duplicates will be saved.</value>
     </labels>
     <labels>
         <fullName>stgHelpReviewErrorLog</fullName>

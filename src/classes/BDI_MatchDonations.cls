@@ -31,6 +31,7 @@
 * @author Salesforce.org
 * @date 2017
 * @group Batch Data Import
+* @group-content ../../ApexDocContent/BatchDataImport.htm
 * @description Provides a default implementation of the BDI_IMatchDonations interface, which supports matching
 * imported Donations with their appropriate Opportunity and Payment.
 *
@@ -40,7 +41,7 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
     /*******************************************************************************************************
     * @description the bdi we are invoked from
     */ 
-    private BDI_DataImport_BATCH bdi { get; set; }
+    private BDI_DataImportService bdi { get; set; }
 
     /*******************************************************************************************************
     * @description the map of DI Donation Fields to Opportunity Fields
@@ -48,8 +49,8 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
     private static map<String, String> mapDIFieldToOppField {
         get {
             if (mapDIFieldToOppField == null) {
-                mapDIFieldToOppField = BDI_DataImport_BATCH.mapFieldsForDIObject('Opportunity', 'Opportunity', 
-                    BDI_DataImport_BATCH.listStrDataImportFields);
+                mapDIFieldToOppField = BDI_DataImportService.mapFieldsForDIObject('Opportunity', 'Opportunity', 
+                    BDI_DataImportService.listStrDataImportFields);
             }
             return mapDIFieldToOppField;
         }
@@ -62,8 +63,8 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
     private static map<string, string> mapDIFieldToPmtField { 
         get {
             if (mapDIFieldToPmtField == null) {
-                mapDIFieldToPmtField = BDI_DataImport_BATCH.mapFieldsForDIObject('Payment', 'npe01__OppPayment__c', 
-                    BDI_DataImport_BATCH.listStrDataImportFields);
+                mapDIFieldToPmtField = BDI_DataImportService.mapFieldsForDIObject('Payment', 'npe01__OppPayment__c', 
+                    BDI_DataImportService.listStrDataImportFields);
                 // special case Donation fields we defaultly map to Opp fields, but we will use with Payments too!
                 // note that these two work for matching rules.  
                 mapDIFieldToPmtField.put(UTIL_Namespace.StrTokenNSPrefix('Donation_Amount__c').toLowercase(), 'npe01__Payment_Amount__c');
@@ -84,7 +85,7 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
     * @param mapDIIdToPmt Map to fill in of DI Id's to matched Payments
     * @return void
     */ 
-    public void match(BDI_DataImport_BATCH bdi, list<DataImport__c> listDI,
+    public void match(BDI_DataImportService bdi, list<DataImport__c> listDI,
         map<Id, Opportunity> mapDIIdToOpp, map<Id, npe01__OppPayment__c> mapDIIdToPmt) {
 
         this.bdi = bdi;
@@ -428,6 +429,9 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
         setOppFields.add('CloseDate');
         setOppFields.add('npe01__Number_of_Payments__c');
         setOppFields.add('Account.npe01__SYSTEMIsIndividual__c');
+
+        // need to include any Opp fields we may update, so we can compare against them
+        setOppFields.addAll(mapDIFieldToOppField.values());
         
         // the set of Payment fields for our soql
         set<String> setPmtFields = new set<String>();
@@ -439,27 +443,17 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
         setPmtFields.add('npe01__Payment_Date__c');
         setPmtFields.add('npe01__Scheduled_Date__c');
         setPmtFields.add('npe01__Written_Off__c');
-        
-        // add the match fields
-        for (String strField : listMatchFields) {
-            String strOppField = mapDIFieldToOppField.get(strField);
-            if (strOppField != null) {
-                setOppFields.add(strOppField);
-            } else {
-                String strPmtField = mapDIFieldToPmtField.get(strField);
-                if (strPmtField != null) {
-                    setPmtFields.add(strPmtField);
-                }
-            }
-        }
-        
+
+        // need to include any Pmt fields we may update, so we can compare against them
+        setPmtFields.addAll(mapDIFieldToPmtField.values());
+
         // now query for all Open Opportunities from these Contacts or Accounts
         integer cFilter = 0;
         string strSoql = 'select ' + string.join(new list<String>(setOppFields), ',');
         
         // add Payment subquery
         strSoql += ', (select ' + string.join(new list<String>(setPmtFields), ',');
-        strSoql += ' from npe01__OppPayment__r where npe01__Paid__c = false order by npe01__Scheduled_Date__c ASC, CreatedDate ASC)';
+        strSoql += ' from npe01__OppPayment__r where npe01__Paid__c = false )';
         
         strSoql += ' from Opportunity';
         strSoql += ' where IsClosed = false and (';
@@ -481,8 +475,10 @@ public with sharing class BDI_MatchDonations implements BDI_IMatchDonations {
             strSoql += ' ' + UTIL_Namespace.StrTokenNSPrefix('Primary_Contact__c') + ' in :setConId ';
             cFilter++;
         }
-        strSoql += ') order by CloseDate ASC, CreatedDate ASC';
-        list<Opportunity> listOpp = database.query(strSoql); 
+        strSoql += ') ';
+        BDI_PerfLogger.PerfLog pl = BDI_DataImportService.perfLogger.newPerfLog('SOQL existing Opps', BDI_PerfLogger.QUERY);
+        list<Opportunity> listOpp = database.query(strSoql);
+        pl.stop();
         return listOpp;           
     }
     

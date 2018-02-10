@@ -58,7 +58,7 @@ public class ERR_Notifier {
 
         Error_Settings__c errorSettings = UTIL_CustomSettingsFacade.getErrorSettings();
         String errorNotifRecipient = errorSettings.Error_Notifications_To__c;
-            
+
         if (errorSettings.Error_Notifications_On__c == true && errorNotifRecipient != null) {
 
             //We will post to chatter, if enabled
@@ -70,18 +70,39 @@ public class ERR_Notifier {
                 List<String> sendList = new List<String>();
                 if (errorNotifRecipient instanceof id && errorNotifRecipient.startsWith(NotificationOptions.user)) {
                     List<User> useremaillist = new List<User>();
-                    useremaillist = [select email from User where id = :errorNotifRecipient and isActive = true];
+                    useremaillist = [SELECT email FROM User WHERE id = :errorNotifRecipient AND isActive = true];
                     for (User u : useremaillist)
                         sendList.add(u.email);
                 } else if(errorNotifRecipient == NotificationOptions.sysAdmins) {
-                    list<User> sysadminlist = [select email from User where User.Profile.Name = 'System Administrator' and isActive = true];
-                    for (User u : sysadminlist) {
-                        sendList.add(u.email);
-                    }
+                    sendList.addAll(getSystemAdminEmails());
                 }
+
                 sendEmailNotifications(context, sendList);
             }
         }
+    }
+
+    /*******************************************************************************************************
+    * @description Get the active System Administrators' emails.
+    * @return List<String> Emails
+    */
+    @TestVisible
+    private static List<String> getSystemAdminEmails() {
+        Set<String> emails = new Set<String>();
+        List<Id> sysAdminProfileIds = UTIL_Profile.getInstance().getProfileIds(UTIL_Profile.SYSTEM_ADMINISTRATOR);
+
+        if (sysAdminProfileIds.isEmpty() == false) {
+            for (User usr : [
+                    SELECT Email 
+                    FROM User 
+                    WHERE ProfileId IN :sysAdminProfileIds 
+                    AND IsActive = true
+            ]) {
+                emails.add(usr.Email);
+            }
+        }
+
+        return new List<String>(emails);
     }
 
     /*******************************************************************************************************
